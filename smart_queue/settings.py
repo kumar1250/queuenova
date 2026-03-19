@@ -81,11 +81,12 @@ TEMPLATES = [
 WSGI_APPLICATION = 'smart_queue.wsgi.application'
 
 # ─── Database ────────────────────────────────────────────────────────────────
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3'),
+        default=DATABASE_URL or 'sqlite:///db.sqlite3',
         conn_max_age=600,
-        ssl_require=not DEBUG,
+        ssl_require=bool(DATABASE_URL),
     )
 }
 
