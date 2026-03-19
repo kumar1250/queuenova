@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Pending - {{ service.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+        <div class="card p-5 shadow-lg border-0 rounded-4">
+            <div class="mb-4">
+                {% if is_upi %}
+                    <i class="bi bi-patch-check text-info" style="font-size: 4rem;"></i>
+                {% else %}
+                    <i class="bi bi-hourglass-split text-warning" style="font-size: 4rem;"></i>
+                {% endif %}
+            </div>
+            
+            {% if is_upi %}
+                <h2 class="mb-4 fw-bold">Payment Info Submitted</h2>
+                <p class="lead">Thank you for the payment! Your <strong>UPI Transaction ID</strong> has been recorded.</p>
+                <div class="alert alert-info py-3 border-0 shadow-sm">
+                    <div class="small text-uppercase fw-bold mb-1">Transaction ID</div>
+                    <div class="h5 mb-0 fw-bold">{{ payment.transaction_id }}</div>
+                </div>
+            {% else %}
+                <h2 class="mb-4 fw-bold">Payment Pending Approval</h2>
+                <p class="lead">Please proceed to the counter to make your payment for <strong>{{ service.name }}</strong>.</p>
+                <div class="alert alert-warning py-3 border-0 shadow-sm">
+                    <strong>Amount:</strong> ₹{{ service.payment_amount }}
+                </div>
+            {% endif %}
+
+            <p class="text-muted mt-3">Once the administrator confirms your payment, your token will be generated automatically and you will receive an email.</p>
+            
+            <div class="mt-4 pt-3">
+                <a href="{% url 'tokens:my_tokens' %}" class="btn btn-primary btn-lg rounded-pill px-5 shadow-sm">
+                    Track My Tokens <i class="bi bi-arrow-right ms-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Register{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center animate__animated animate__fadeIn">
+    <div class="col-md-6">
+        <div class="card p-4 shadow-lg border-0 animate__animated animate__zoomIn">
+            <h2 class="text-center mb-2">Register Admin</h2>
+            <p class="text-center text-muted small mb-4">Create an account to manage organizations and services</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="form-text x-small" style="font-size: 0.75rem;">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                            <div class="text-danger small">{{ field.errors }}</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">Create Admin Account</button>
+                </div>
+            </form>
+
+            <div class="mt-4 text-center">
+                <p>Already have an account? <a href="{% url 'users:login' %}">Login here</a></p>
+                <p class="small">Looking for regular user registration? <a href="{% url 'users:register' %}">Click here</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

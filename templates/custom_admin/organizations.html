@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Organizations{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0 text-gray-800">Manage Organizations</h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'custom_admin:organization_add' %}" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-lg me-2"></i>Add Organization
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+                <tr>
+                    <th class="ps-4">Organization Name</th>
+                    <th>Email/Phone</th>
+                    <th>Razorpay Account</th>
+                    <th>Offline Payment</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for org in organizations %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="fw-bold text-dark">{{ org.name }}</div>
+                        <small class="text-muted">{{ org.address }}</small>
+                    </td>
+                    <td>
+                        <div>{{ org.email|default:"No email" }}</div>
+                        <small class="text-muted">{{ org.phone|default:"No phone" }}</small>
+                    </td>
+                    <td>
+                        {% if org.razorpay_account_id %}
+                            <code class="text-primary">{{ org.razorpay_account_id }}</code>
+                        {% else %}
+                            <span class="badge bg-secondary">Not Linked</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if org.is_offline_payment_available %}
+                            <span class="badge bg-success">Available</span>
+                        {% else %}
+                            <span class="badge bg-warning">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <div class="btn-group shadow-sm">
+                            <a href="{% url 'custom_admin:organization_edit' org.id %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'custom_admin:organization_delete' org.id %}" class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center py-5 text-muted">No organizations found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

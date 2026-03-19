@@ -1,0 +1,59 @@
+<!-- Item 1: Organizations -->
+<div class="stat-card-item">
+    <a href="{% url 'custom_admin:manage_organizations' %}" class="text-decoration-none d-block">
+        <div class="card glass-card h-100 p-3">
+            <div class="card-body">
+                <div class="card-icon-circle bg-soft-primary">
+                    <i class="bi bi-building fs-4"></i>
+                </div>
+                <div class="text-xs font-weight-bold text-uppercase text-muted mb-1" style="font-size: 0.7rem;">Organizations</div>
+                <div class="h4 mb-0 font-weight-bold text-dark">{{ org_count }}</div>
+            </div>
+        </div>
+    </a>
+</div>
+
+<!-- Item 2: Active Services -->
+<div class="stat-card-item">
+    <a href="{% url 'custom_admin:manage_services' %}" class="text-decoration-none d-block">
+        <div class="card glass-card h-100 p-3">
+            <div class="card-body">
+                <div class="card-icon-circle bg-soft-success">
+                    <i class="bi bi-gear-fill fs-4"></i>
+                </div>
+                <div class="text-xs font-weight-bold text-uppercase text-muted mb-1" style="font-size: 0.7rem;">Active Services</div>
+                <div class="h4 mb-0 font-weight-bold text-dark">{{ service_count }}</div>
+            </div>
+        </div>
+    </a>
+</div>
+
+<!-- Item 3: Total Tokens -->
+<div class="stat-card-item">
+    <a href="{% url 'tokens:queue_dashboard' %}" class="text-decoration-none d-block">
+        <div class="card glass-card h-100 p-3">
+            <div class="card-body">
+                <div class="card-icon-circle bg-soft-info">
+                    <i class="bi bi-ticket-perforated-fill fs-4"></i>
+                </div>
+                <div class="text-xs font-weight-bold text-uppercase text-muted mb-1" style="font-size: 0.7rem;">Total Tokens</div>
+                <div class="h4 mb-0 font-weight-bold text-dark">{{ total_tokens }}</div>
+            </div>
+        </div>
+    </a>
+</div>
+
+<!-- Item 4: Waiting in Queue -->
+<div class="stat-card-item">
+    <a href="{% url 'tokens:queue_dashboard' %}" class="text-decoration-none d-block">
+        <div class="card glass-card h-100 p-3">
+            <div class="card-body">
+                <div class="card-icon-circle bg-soft-warning">
+                    <i class="bi bi-people-fill fs-4"></i>
+                </div>
+                <div class="text-xs font-weight-bold text-uppercase text-muted mb-1" style="font-size: 0.7rem;">Waiting in Queue</div>
+                <div class="h4 mb-0 font-weight-bold text-dark">{{ waiting_tokens }}</div>
+            </div>
+        </div>
+    </a>
+</div>

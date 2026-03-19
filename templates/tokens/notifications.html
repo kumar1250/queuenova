@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications for Token #{{ token.token_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Notifications for Token #{{ token.token_number }}</h5>
+                <a href="{% url 'tokens:token_detail' token.id %}" class="btn btn-sm btn-outline-primary">Back to Token</a>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for notification in notifications %}
+                    <div class="list-group-item p-4">
+                        <div class="d-flex w-100 justify-content-between mb-2">
+                            <h6 class="mb-1">Status Update</h6>
+                            <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                        </div>
+                        <p class="mb-1 lead">{{ notification.message }}</p>
+                    </div>
+                {% empty %}
+                    <div class="p-5 text-center text-muted">
+                        <p class="mb-0">No notifications yet. You'll be alerted when your queue status changes.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <p class="text-muted small">This system simulates SMS and Email alerts by showing them here.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

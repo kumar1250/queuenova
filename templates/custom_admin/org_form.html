@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Organization{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow border-0">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 text-primary">
+                    <i class="bi bi-building me-2"></i>
+                    {% if object %}Edit Organization: {{ object.name }}{% else %}Add New Organization{% endif %}
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Organization Name</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger mt-1 small">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger mt-1 small">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Address</label>
+                        {{ form.address }}
+                        {% if form.address.errors %}
+                            <div class="text-danger mt-1 small">{{ form.address.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Contact Number</label>
+                        {{ form.contact_number }}
+                        {% if form.contact_number.errors %}
+                            <div class="text-danger mt-1 small">{{ form.contact_number.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Email</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger mt-1 small">{{ form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Phone</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                                <div class="text-danger mt-1 small">{{ form.phone.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold text-info">UPI ID / VPA</label>
+                            {{ form.upi_id }}
+                            {% if form.upi_id.errors %}
+                                <div class="text-danger mt-1 small">{{ form.upi_id.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted d-block mt-1">Direct payment ID (e.g. name@bank)</small>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold text-info">UPI QR Code</label>
+                            {{ form.upi_qr_code }}
+                            {% if form.upi_qr_code.errors %}
+                                <div class="text-danger mt-1 small">{{ form.upi_qr_code.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted d-block mt-1">Static QR code for UPI payments.</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-primary">Razorpay Account ID (Linked Bank Account)</label>
+                        {{ form.razorpay_account_id }}
+                        {% if form.razorpay_account_id.errors %}
+                            <div class="text-danger mt-1 small">{{ form.razorpay_account_id.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted d-block mt-1">This ID is used for Razorpay Route transfers to send money directly to your bank account.</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check form-switch p-3 bg-light rounded-3 border">
+                            {{ form.is_offline_payment_available }}
+                            <label class="form-check-label fw-bold ms-2">Enable Offline Payment Availability</label>
+                            <div class="text-muted small ms-5 mt-1">If enabled, services under this organization can choose to allow offline payments.</div>
+                        </div>
+                        {% if form.is_offline_payment_available.errors %}
+                            <div class="text-danger mt-1 small">{{ form.is_offline_payment_available.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-lg me-2"></i>Save Organization
+                        </button>
+                        <a href="{% url 'custom_admin:manage_organizations' %}" class="btn btn-outline-secondary px-4">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}
