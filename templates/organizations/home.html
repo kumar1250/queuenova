@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Professional Hero Section -->
+<section class="hero-section text-center py-5 mb-5 bg-white rounded-4 shadow-sm animate__animated animate__fadeIn border-bottom border-primary border-5">
+    <div class="container py-4">
+        <div class="badge bg-primary bg-opacity-10 text-primary mb-3 px-3 py-2 rounded-pill fw-bold">
+            <i class="bi bi-stars me-2"></i>Smart Queue Management v2.0
+        </div>
+        <h1 class="display-4 fw-bold text-dark mb-3 animate__animated animate__slideInDown">
+            Your Time is <span class="text-primary">Valuable</span>
+        </h1>
+        <p class="lead text-muted mb-4 fs-5 mx-auto animate__animated animate__fadeIn animate__delay-1s" style="max-width: 700px;">
+            Join a digital queue, get your token, and wait comfortably from anywhere. No more physical lines, just pure efficiency.
+        </p>
+        
+        <div class="d-flex justify-content-center gap-3 mt-4 animate__animated animate__zoomIn animate__delay-1s">
+            <a href="{% url 'tokens:my_tokens' %}" class="btn btn-primary btn-lg px-5 shadow-sm rounded-pill">
+                <i class="bi bi-ticket-perforated-fill me-2"></i>My Active Tokens
+            </a>
+            <a href="{% url 'tokens:queue_display' %}" class="btn btn-outline-dark btn-lg px-5 shadow-sm rounded-pill">
+                <i class="bi bi-display me-2"></i>Live Queue Status
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Search/Filter Section -->
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Available Organizations</h3>
+        <p class="text-muted mb-0 small">Explore services and join the queue in one click.</p>
+    </div>
+    <div class="col-md-3">
+        <div class="input-group shadow-sm rounded-pill overflow-hidden">
+            <span class="input-group-text bg-white border-0 ps-3"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" class="form-control border-0 py-2 small shadow-none" placeholder="Search provider...">
+        </div>
+    </div>
+</div>
+
+<!-- Organizations Grid -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for org in organizations %}
+    <div class="col" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:1 }}00">
+        <div class="card h-100 border-0 shadow-sm hover-shadow transition overflow-hidden">
+            <div class="card-header bg-white p-4 border-0 pb-0">
+                <div class="d-flex align-items-start justify-content-between">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-4 me-3">
+                        <i class="bi bi-building fs-3 text-primary"></i>
+                    </div>
+                    <div class="text-end">
+                        {% if org.is_offline_payment_available %}
+                        <span class="badge bg-warning bg-opacity-10 text-dark small border border-warning border-opacity-25">Offline Pay Ready</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h5 class="card-title fw-bold mb-1">{{ org.name }}</h5>
+                    <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ org.address|truncatechars:45 }}</div>
+                </div>
+            </div>
+            
+            <div class="card-body p-4">
+                <p class="card-text text-muted small mb-4">{{ org.description|truncatewords:20 }}</p>
+                
+                <div class="bg-light p-3 rounded-4">
+                    <h6 class="fw-bold small text-uppercase text-muted mb-3 d-flex align-items-center">
+                        <i class="bi bi-list-task me-2 text-primary"></i>Quick Join
+                    </h6>
+                    <div class="d-grid gap-2">
+                        {% for service in org.services.all %}
+                            {% if service.is_active %}
+                                <a href="{% url 'tokens:service_form' service.id %}" class="btn btn-white bg-white btn-sm text-start d-flex justify-content-between align-items-center border-0 shadow-sm px-3 py-2 rounded-3 hover-primary">
+                                    <span class="fw-medium">{{ service.name }}</span>
+                                    {% if service.is_payment_required %}
+                                    <span class="text-success fw-bold small">₹{{ service.payment_amount }}</span>
+                                    {% else %}
+                                    <span class="text-info fw-bold small">Free</span>
+                                    {% endif %}
+                                </a>
+                            {% endif %}
+                        {% empty %}
+                            <div class="text-muted small text-center py-2 italic">No services online</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer bg-white border-0 p-4 pt-0">
+                <a href="{% url 'organizations:service_detail' org.services.first.id %}" class="btn btn-link btn-sm text-decoration-none text-primary fw-bold p-0">
+                    See full details <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <div class="bg-white p-5 rounded-4 shadow-sm d-inline-block">
+            <i class="bi bi-inbox display-1 text-muted mb-4 d-block"></i>
+            <h4 class="text-muted">No organizations are currently listed.</h4>
+            <p class="text-secondary">Please check back later or contact support.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    .hover-shadow:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1) !important;
+    }
+    .transition {
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+    .hover-primary:hover {
+        background-color: var(--primary-color) !important;
+        color: white !important;
+    }
+    .hover-primary:hover span {
+        color: white !important;
+    }
+</style>
+{% endblock %}

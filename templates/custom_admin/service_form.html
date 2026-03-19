@@ -1,0 +1,429 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Service{% endblock %}
+
+{% block extra_css %}
+<style>
+    .field-form { cursor: default; }
+    .drag-handle { cursor: grab; color: #ccc; }
+    .drag-handle:active { cursor: grabbing; }
+    .sortable-ghost { opacity: 0.4; background-color: #e9ecef !important; }
+    .preview-card { position: sticky; top: 20px; }
+    .field-preview-item { transition: all 0.3s ease; }
+    #payment_amount_container, #offline_payment_container {
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Editor Column -->
+    <div class="col-lg-7">
+        <div class="card shadow border-0 mb-4 animate__animated animate__fadeInLeft">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 text-primary">
+                    <i class="bi bi-layers me-2"></i>
+                    {% if object %}Edit Service{% else %}Add New Service{% endif %}
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="service-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Select Organization</label>
+                            {{ form.organization }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Service Name</label>
+                            {{ form.name }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        {{ form.description }}
+                    </div>
+                    
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-4">
+                                {{ form.is_payment_required }}
+                                <label class="form-check-label fw-bold">Payment Required?</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3" id="payment_amount_container">
+                            <label class="form-label fw-bold">Payment Amount (₹)</label>
+                            {{ form.payment_amount }}
+                        </div>
+                        <div class="col-md-3" id="online_payment_container">
+                            <div class="form-check form-switch mt-4">
+                                {{ form.is_online_payment_allowed }}
+                                <label class="form-check-label fw-bold">Online Payment?</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3" id="upi_payment_container">
+                            <div class="form-check form-switch mt-4">
+                                {{ form.is_upi_payment_allowed }}
+                                <label class="form-check-label fw-bold">Direct UPI?</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3" id="offline_payment_container">
+                            <div class="form-check form-switch mt-4">
+                                {{ form.is_offline_payment_allowed }}
+                                <label class="form-check-label fw-bold">Offline Payment?</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Organization UPI Info (Visible only if UPI Payment is allowed) -->
+                    <div id="organization_upi_info" class="card bg-info bg-opacity-10 border-info border-opacity-25 mb-4 animate__animated animate__fadeIn" style="display: none;">
+                        <div class="card-header bg-transparent border-0 pb-0">
+                            <h6 class="fw-bold text-info mb-0"><i class="bi bi-qr-code-scan me-2"></i>Organization UPI Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small">UPI ID / VPA</label>
+                                    {{ form.upi_id }}
+                                    <div class="form-text small">Updates linked organization's UPI ID</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small">UPI QR Code</label>
+                                    {{ form.upi_qr_code }}
+                                    <div class="form-text small">Updates linked organization's QR code</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Avg. Service Time (mins)</label>
+                            {{ form.average_service_time }}
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-4">
+                                {{ form.is_active }}
+                                <label class="form-check-label fw-bold">Is Active?</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pb-0">
+                            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-ui-checks me-2"></i>Registration Fields</h6>
+                            <button type="button" id="add-form" class="btn btn-sm btn-success rounded-pill px-3">
+                                <i class="bi bi-plus-circle me-1"></i>Add Field
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            {{ formset.management_form }}
+                            <div id="formset-container">
+                                {% for field_form in formset %}
+                                    <div class="field-form card mb-2 border shadow-sm animate__animated animate__fadeInUp">
+                                        <div class="card-body p-3">
+                                            <div class="row g-2 align-items-center">
+                                                <div class="col-auto">
+                                                    <div class="drag-handle p-2"><i class="bi bi-grip-vertical fs-4"></i></div>
+                                                </div>
+                                                {% for hidden in field_form.hidden_fields %}
+                                                    {{ hidden }}
+                                                {% endfor %}
+                                                <div class="col">
+                                                    <label class="form-label small fw-bold mb-1">Label</label>
+                                                    <input type="text" name="{{ field_form.label.html_name }}" value="{{ field_form.label.value|default:'' }}" class="form-control form-control-sm field-label-input" placeholder="Field Label">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small fw-bold mb-1">Type</label>
+                                                    <select name="{{ field_form.field_type.html_name }}" class="form-select form-select-sm field-type-input">
+                                                        {% for val, text in field_form.field_type.field.choices %}
+                                                            <option value="{{ val }}" {% if field_form.field_type.value == val %}selected{% endif %}>{{ text }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3 options-column" style="{% if field_form.field_type.value != 'select' and field_form.field_type.value != 'radio' %}display: none;{% endif %}">
+                                                    <label class="form-label small fw-bold mb-1">Options (comma-separated)</label>
+                                                    <input type="text" name="{{ field_form.options.html_name }}" value="{{ field_form.options.value|default:'' }}" class="form-control form-control-sm field-options-input" placeholder="Red, Blue, Green">
+                                                </div>
+                                                <div class="col-auto">
+                                                    <div class="form-check pt-4">
+                                                        {{ field_form.is_required }}
+                                                        <label class="form-check-label small">Req.</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <input type="hidden" name="{{ field_form.order.html_name }}" value="{{ field_form.order.value|default:forloop.counter0 }}" class="field-order-input">
+                                                    {% if formset.can_delete %}
+                                                        <div class="d-none">{{ field_form.DELETE }}</div>
+                                                        <button type="button" class="btn btn-link text-danger p-0 remove-field-btn"><i class="bi bi-trash"></i></button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-5 shadow-sm">Save Service Configuration</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Column -->
+    <div class="col-lg-5 animate__animated animate__fadeInRight">
+        <div class="card shadow-lg border-0 preview-card">
+            <div class="card-header bg-primary text-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-eye me-2"></i>Live Registration Form Preview</h6>
+            </div>
+            <div class="card-body p-4 bg-light">
+                <div id="form-preview" class="bg-white p-4 rounded shadow-sm">
+                    <h4 id="preview-title" class="text-center fw-bold mb-2">Service Name</h4>
+                    <div id="preview-desc" class="text-muted small text-center mb-4">Description will appear here...</div>
+                    <hr>
+                    <div id="preview-fields-container">
+                        <!-- Dynamic fields will be injected here -->
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button class="btn btn-primary btn-lg disabled">Next Step</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('formset-container');
+        const previewContainer = document.getElementById('preview-fields-container');
+        const serviceNameInput = document.getElementById('id_name');
+        const serviceDescInput = document.getElementById('id_description');
+        const previewTitle = document.getElementById('preview-title');
+        const previewDesc = document.getElementById('preview-desc');
+        const totalForms = document.getElementById('id_fields-TOTAL_FORMS');
+        const paymentRequiredToggle = document.getElementById('id_is_payment_required');
+        const paymentAmountContainer = document.getElementById('payment_amount_container');
+        const onlinePaymentContainer = document.getElementById('online_payment_container');
+        const upiPaymentContainer = document.getElementById('upi_payment_container');
+        const offlinePaymentContainer = document.getElementById('offline_payment_container');
+        const upiDetailsContainer = document.getElementById('organization_upi_info');
+        const upiCheckbox = document.getElementById('id_is_upi_payment_allowed');
+        const organizationSelect = document.getElementById('id_organization');
+
+        function togglePaymentFields() {
+            const isPaymentRequired = paymentRequiredToggle.checked;
+            const selectedOrg = organizationSelect.options[organizationSelect.selectedIndex];
+            const isOfflineAvailable = selectedOrg && selectedOrg.getAttribute('data-offline-available') === 'true';
+
+            if (isPaymentRequired) {
+                paymentAmountContainer.style.display = 'block';
+                onlinePaymentContainer.style.display = 'block';
+                upiPaymentContainer.style.display = 'block';
+                if (isOfflineAvailable) {
+                    offlinePaymentContainer.style.display = 'block';
+                } else {
+                    offlinePaymentContainer.style.display = 'none';
+                    const offlineCheckbox = document.getElementById('id_is_offline_payment_allowed');
+                    if(offlineCheckbox) offlineCheckbox.checked = false;
+                }
+                
+                // Show/hide UPI details based on UPI checkbox
+                if (upiCheckbox && upiCheckbox.checked) {
+                    upiDetailsContainer.style.display = 'block';
+                } else {
+                    upiDetailsContainer.style.display = 'none';
+                }
+            } else {
+                paymentAmountContainer.style.display = 'none';
+                onlinePaymentContainer.style.display = 'none';
+                upiPaymentContainer.style.display = 'none';
+                offlinePaymentContainer.style.display = 'none';
+                upiDetailsContainer.style.display = 'none';
+                
+                // Reset toggles if payment not required
+                const onlineCheckbox = document.getElementById('id_is_online_payment_allowed');
+                const offlineCheckbox = document.getElementById('id_is_offline_payment_allowed');
+                if(onlineCheckbox) onlineCheckbox.checked = false;
+                if(upiCheckbox) upiCheckbox.checked = false;
+                if(offlineCheckbox) offlineCheckbox.checked = false;
+            }
+        }
+
+        if (paymentRequiredToggle && organizationSelect) {
+            paymentRequiredToggle.addEventListener('change', togglePaymentFields);
+            organizationSelect.addEventListener('change', togglePaymentFields);
+            if(upiCheckbox) upiCheckbox.addEventListener('change', togglePaymentFields);
+            togglePaymentFields();
+        }
+
+        // Initialize Sortable
+        new Sortable(container, {
+            handle: '.drag-handle',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function() {
+                updateFieldOrders();
+                updatePreview();
+            }
+        });
+
+        function updateFieldOrders() {
+            const fields = container.getElementsByClassName('field-form');
+            for (let i = 0; i < fields.length; i++) {
+                fields[i].querySelector('.field-order-input').value = i;
+            }
+        }
+
+        function updatePreview() {
+            previewTitle.textContent = serviceNameInput.value || 'Service Name';
+            previewDesc.innerHTML = serviceDescInput.value || 'Description will appear here...';
+            
+            previewContainer.innerHTML = '';
+            const fields = container.getElementsByClassName('field-form');
+            
+            Array.from(fields).forEach(fieldCard => {
+                const label = fieldCard.querySelector('.field-label-input').value || 'Label';
+                const type = fieldCard.querySelector('.field-type-input').value;
+                const optionsVal = fieldCard.querySelector('.field-options-input').value;
+                const required = fieldCard.querySelector('input[type="checkbox"]').checked;
+                
+                // Toggle options column visibility
+                const optionsColumn = fieldCard.querySelector('.options-column');
+                if (type === 'select' || type === 'radio') {
+                    optionsColumn.style.display = 'block';
+                } else {
+                    optionsColumn.style.display = 'none';
+                }
+
+                // Skip if marked for deletion (hidden checkbox)
+                const deleteCheck = fieldCard.querySelector('input[name$="-DELETE"]');
+                if (deleteCheck && deleteCheck.checked) return;
+
+                const previewItem = document.createElement('div');
+                previewItem.className = 'mb-3 field-preview-item animate__animated animate__fadeIn';
+                
+                let inputHtml = '';
+                const labelSuffix = required ? '<span class="text-danger">*</span>' : '';
+                
+                switch(type) {
+                    case 'textarea':
+                        inputHtml = `<textarea class="form-control form-control-sm" rows="2" placeholder="${label}"></textarea>`;
+                        break;
+                    case 'select':
+                        let selectOptions = ['Option 1', 'Option 2'];
+                        if (optionsVal) {
+                            selectOptions = optionsVal.split(',').map(o => o.trim());
+                        }
+                        inputHtml = `<select class="form-select form-select-sm">
+                            <option value="">Choose an option...</option>
+                            ${selectOptions.map(o => `<option>${o}</option>`).join('')}
+                        </select>`;
+                        break;
+                    case 'radio':
+                        let radioOptions = ['Option 1', 'Option 2'];
+                        if (optionsVal) {
+                            radioOptions = optionsVal.split(',').map(o => o.trim());
+                        }
+                        inputHtml = '<div class="mt-1">';
+                        radioOptions.forEach((opt, idx) => {
+                            inputHtml += `
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="preview_${label}_${Math.random()}" id="prev_${label}_${idx}" disabled>
+                                    <label class="form-check-label small" for="prev_${label}_${idx}">${opt}</label>
+                                </div>`;
+                        });
+                        inputHtml += '</div>';
+                        break;
+                    default:
+                        inputHtml = `<input type="${type === 'phone' ? 'tel' : type}" class="form-control form-control-sm" placeholder="${label}">`;
+                }
+                
+                previewItem.innerHTML = `
+                    <label class="form-label small fw-bold mb-1">${label} ${labelSuffix}</label>
+                    ${inputHtml}
+                `;
+                previewContainer.appendChild(previewItem);
+            });
+        }
+
+        // Event Listeners for Live Update
+        serviceNameInput.addEventListener('input', updatePreview);
+        serviceDescInput.addEventListener('input', updatePreview);
+        
+        container.addEventListener('input', function(e) {
+            if (e.target.classList.contains('field-label-input') || 
+                e.target.classList.contains('field-type-input') || 
+                e.target.classList.contains('field-options-input') || 
+                e.target.type === 'checkbox') {
+                updatePreview();
+            }
+        });
+        
+        container.addEventListener('change', function(e) {
+            if (e.target.classList.contains('field-type-input')) {
+                updatePreview();
+            }
+        });
+
+        // Add Field
+        document.getElementById('add-form').addEventListener('click', function() {
+            const currentForms = container.getElementsByClassName('field-form');
+            const formNum = currentForms.length;
+            const newForm = currentForms[0].cloneNode(true);
+            
+            // Clean animations
+            newForm.classList.remove('animate__fadeInUp');
+            void newForm.offsetWidth; // Trigger reflow
+            newForm.classList.add('animate__fadeInUp');
+
+            const formRegex = new RegExp(`fields-(\\d+)-`, 'g');
+            newForm.innerHTML = newForm.innerHTML.replace(formRegex, `fields-${formNum}-`);
+            
+            const inputs = newForm.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') input.checked = false;
+                else if (input.type !== 'hidden') input.value = '';
+                if (input.name.includes('-id')) input.value = '';
+            });
+
+            container.appendChild(newForm);
+            totalForms.setAttribute('value', formNum + 1);
+            updateFieldOrders();
+            updatePreview();
+        });
+
+        // Remove Field (Handle Delete)
+        container.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-field-btn')) {
+                const card = e.target.closest('.field-form');
+                const deleteCheck = card.querySelector('input[name$="-DELETE"]');
+                if (deleteCheck) {
+                    deleteCheck.checked = true;
+                    card.classList.add('animate__fadeOutRight');
+                    setTimeout(() => {
+                        card.style.display = 'none';
+                        updatePreview();
+                    }, 500);
+                } else {
+                    card.remove();
+                    updatePreview();
+                }
+            }
+        });
+
+        // Initial Preview
+        updatePreview();
+    });
+</script>
+{% endblock %}

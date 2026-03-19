@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Advanced Marquee Styling */
+    .marquee-container {
+        overflow: hidden;
+        white-space: nowrap;
+        position: relative;
+        padding: 30px 0;
+        mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    }
+    .marquee-content {
+        display: inline-flex;
+        animation: marquee-move 20s linear infinite;
+        /* Move right by default if needed, otherwise change direction */
+    }
+    @keyframes marquee-move {
+        0% { transform: translateX(-50%); }
+        100% { transform: translateX(0%); }
+    }
+    .marquee-container:hover .marquee-content {
+        animation-play-state: paused;
+    }
+    .stat-card-item {
+        flex: 0 0 auto;
+        width: 300px;
+        margin: 0 15px;
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .stat-card-item:hover {
+        transform: scale(1.05);
+    }
+    .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 1.25rem;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
+    }
+    .card-icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+    .bg-soft-primary { background: rgba(13, 110, 253, 0.1); color: #0d6efd; }
+    .bg-soft-success { background: rgba(25, 135, 84, 0.1); color: #198754; }
+    .bg-soft-info { background: rgba(13, 202, 240, 0.1); color: #0dcaf0; }
+    .bg-soft-warning { background: rgba(255, 193, 7, 0.1); color: #ffc107; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h1 class="h3 mb-0 text-gray-800 fw-bold">Admin Overview</h1>
+        <p class="text-muted small mb-0">Statistics for <strong>{{ selected_date|date:"F d, Y" }}</strong></p>
+    </div>
+    <div class="col-md-6 d-flex justify-content-md-end mt-3 mt-md-0">
+        <form method="get" class="d-flex align-items-center gap-2">
+            <label for="date" class="small fw-bold text-nowrap">Filter by Date:</label>
+            <input type="date" name="date" id="date" class="form-control form-control-sm rounded-pill px-3 shadow-sm border-0" value="{{ selected_date|date:'Y-m-d' }}" onchange="this.form.submit()">
+        </form>
+    </div>
+</div>
+
+<div class="marquee-container mb-5">
+    <div class="marquee-content">
+        <!-- Original Cards -->
+        {% include 'custom_admin/partial_stat_cards.html' %}
+        <!-- Duplicated for seamless loop -->
+        {% include 'custom_admin/partial_stat_cards.html' %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            </div>
+            <div class="card-body text-center p-4">
+                <div class="d-grid gap-3">
+                    <a href="{% url 'custom_admin:manage_organizations' %}" class="btn btn-outline-primary py-3">
+                        <i class="bi bi-plus-circle me-2"></i>Manage Organizations
+                    </a>
+                    <a href="{% url 'custom_admin:manage_services' %}" class="btn btn-outline-success py-3">
+                        <i class="bi bi-plus-circle me-2"></i>Manage Services
+                    </a>
+                    <a href="{% url 'custom_admin:manage_payments' %}" class="btn btn-outline-warning py-3">
+                        <i class="bi bi-cash me-2"></i>Manage Offline Payments
+                    </a>
+                    <a href="{% url 'tokens:queue_dashboard' %}" class="btn btn-primary py-3">
+                        <i class="bi bi-play-fill me-2"></i>Go to Live Queue Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Admin Tips</h6>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li>Check <strong>Analytics</strong> to see peak hours.</li>
+                    <li>Update <strong>Service Status</strong> to enable/disable specific service windows.</li>
+                    <li>Use the <strong>Live Display</strong> on a large TV in the waiting area.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

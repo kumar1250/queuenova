@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Token Details - {{ token.token_number }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center animate__animated animate__fadeIn">
+    <div class="col-md-6 text-center">
+        <div class="card p-5 mb-4 shadow-lg border-0 animate__animated animate__zoomIn">
+            <h2 class="mb-4 text-gradient fw-bold">Token Confirmed!</h2>
+            <div class="token-badge-container mb-3">
+                <h3 class="display-1 text-primary mb-0 fw-bold animate__animated animate__pulse animate__infinite">#{{ token.token_number }}</h3>
+            </div>
+            <p class="lead mb-4 text-muted fw-semibold">{{ token.service.name }}</p>
+            
+            {% if token.qr_code %}
+                <div class="mb-4 p-3 bg-light rounded d-inline-block">
+                    <img src="{{ token.qr_code.url }}" alt="Token QR Code" class="img-fluid" style="max-width: 180px;">
+                    <p class="small text-muted mt-2 mb-0"><i class="bi bi-qr-code me-1"></i>Scan at Counter</p>
+                </div>
+            {% endif %}
+            
+            <hr>
+            
+            {% if token.status == 'waiting' or token.status == 'near' %}
+                <div class="alert alert-info py-4 mb-4">
+                    <h4 class="mb-3">Estimated Queue Status</h4>
+                    <div class="row">
+                        <div class="col-6 border-end">
+                            <p class="text-muted small mb-1">Queue Position</p>
+                            <h5 class="fw-bold">{{ current_position }}</h5>
+                        </div>
+                        <div class="col-6">
+                            <p class="text-muted small mb-1">Wait Time</p>
+                            <h5 class="fw-bold text-primary">{{ estimated_wait }} min</h5>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="mb-0 text-muted">{{ people_ahead }} people ahead of you</p>
+                </div>
+            {% else %}
+                <div class="alert alert-success py-4 mb-4">
+                    <h4 class="mb-3">Token Status</h4>
+                    <p class="display-6 text-capitalize">{{ token.status }}</p>
+                </div>
+            {% endif %}
+            
+            <div class="d-grid gap-2">
+                <a href="{% url 'tokens:notification_list' token.id %}" class="btn btn-warning btn-lg position-relative">
+                    <i class="bi bi-bell me-2"></i>Notifications
+                    {% with unread_count=token.notifications.filter.is_read|default:0 %}
+                        <!-- We don't have a simple way to count unread here without complex template tags, 
+                             so we just show the button -->
+                    {% endwith %}
+                </a>
+                <a href="/" class="btn btn-primary btn-lg"><i class="bi bi-house me-2"></i>Home</a>
+                
+                {% if token.status == 'waiting' %}
+                    <form action="{% url 'tokens:cancel_token' token.id %}" method="post" class="mt-2">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Are you sure you want to cancel this token?')">Cancel Token</button>
+                    </form>
+                {% endif %}
+                
+                <button onclick="window.print()" class="btn btn-outline-secondary mt-2">
+                    <i class="bi bi-printer me-2"></i>Print Token
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

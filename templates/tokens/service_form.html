@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+
+{% block title %}Service Form - {{ service.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+
+/* ---------------- FIELD SPACING ---------------- */
+
+.mb-4{
+    margin-bottom: 1.8rem !important;
+}
+
+.form-label{
+    margin-bottom:8px;
+    font-size:0.95rem;
+}
+
+.form-field{
+    margin-top:6px;
+}
+
+.form-control,
+.form-select{
+    padding:0.85rem 1rem;
+    border-radius:0.75rem;
+    border:1px solid #e2e8f0;
+    background:#f8fafc;
+    transition:all .2s ease;
+}
+
+.form-control:focus,
+.form-select:focus{
+    background:#fff;
+    border-color:var(--primary-color);
+    box-shadow:0 0 0 4px rgba(13,110,253,.1);
+}
+
+.form-text{
+    margin-top:6px;
+    font-size:0.85rem;
+}
+
+.text-danger{
+    margin-top:6px;
+    font-size:0.85rem;
+}
+
+
+/* ---------------- RADIO BUTTON STYLE (FIXED) ---------------- */
+
+.form-field ul{
+    list-style:none;
+    padding:0;
+    margin-top:10px;
+    display:flex;
+    flex-direction:row;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:30px; /* Increased gap between radio button options */
+}
+
+.form-field ul li{
+    display:flex;
+    align-items:center;
+}
+
+.form-field ul li label{
+    display:flex;
+    align-items:center;
+    gap:10px; /* Space between the radio circle and the name */
+    font-weight:500;
+    cursor:pointer;
+    color:#334155;
+    margin-bottom:0;
+    white-space:nowrap;
+}
+
+.form-field ul li input[type="radio"]{
+    width:18px;
+    height:18px;
+    cursor:pointer;
+    accent-color:var(--primary-color);
+    margin:0;
+}
+
+
+/* ---------------- STEP INDICATOR ---------------- */
+
+.step-indicator{
+    display:flex;
+    justify-content:center;
+    margin-bottom:2rem;
+}
+
+.step{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    position:relative;
+    flex:1;
+}
+
+.step:not(:last-child):after{
+    content:'';
+    position:absolute;
+    top:20px;
+    left:50%;
+    width:100%;
+    height:2px;
+    background:#e2e8f0;
+    z-index:1;
+}
+
+.step-circle{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    background:#fff;
+    border:2px solid #e2e8f0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:600;
+    margin-bottom:8px;
+    position:relative;
+    z-index:2;
+}
+
+.step.active .step-circle{
+    border-color:var(--primary-color);
+    background:var(--primary-color);
+    color:#fff;
+}
+
+.step.active .step-label{
+    color:var(--primary-color);
+    font-weight:600;
+}
+
+.step-label{
+    font-size:0.8rem;
+    color:#94a3b8;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+}
+
+</style>
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="row justify-content-center">
+<div class="col-md-7 col-lg-6">
+
+<!-- STEP INDICATOR -->
+
+<div class="step-indicator animate__animated animate__fadeIn">
+
+<div class="step active">
+<div class="step-circle">1</div>
+<div class="step-label">Registration</div>
+</div>
+
+<div class="step">
+<div class="step-circle">2</div>
+<div class="step-label">{% if service.is_payment_required %}Payment{% else %}Verification{% endif %}</div>
+</div>
+
+{% if service.is_payment_required %}
+<div class="step">
+<div class="step-circle">3</div>
+<div class="step-label">Verification</div>
+</div>
+{% endif %}
+
+</div>
+
+
+
+<div class="card shadow-lg border-0 overflow-hidden animate__animated animate__fadeInUp">
+
+<div class="card-header bg-primary py-4 text-center border-0">
+
+<div class="bg-white p-2 rounded-circle d-inline-flex mb-3 shadow-sm">
+<i class="bi bi-file-earmark-text text-primary fs-3"></i>
+</div>
+
+<h3 class="text-white fw-bold mb-0">{{ service.name }}</h3>
+
+<p class="text-white-50 small mb-0 mt-1">
+Please fill in the required information
+</p>
+
+</div>
+
+
+
+<div class="card-body p-4 p-md-5">
+
+{% if service.description %}
+
+<div class="alert alert-info border-0 shadow-sm mb-4 small">
+
+<div class="d-flex">
+<i class="bi bi-info-circle-fill me-2 fs-5"></i>
+<div>{{ service.description|safe }}</div>
+</div>
+
+</div>
+
+{% endif %}
+
+
+
+<form method="post" action="{% url 'tokens:service_form' service.id %}" id="regForm">
+
+{% csrf_token %}
+
+
+{% for field in form %}
+
+<div class="mb-4">
+
+<label for="{{ field.id_for_label }}"
+class="form-label fw-bold text-dark d-flex align-items-center">
+
+{{ field.label }}
+
+{% if field.field.required %}
+<span class="text-danger ms-1">*</span>
+{% endif %}
+
+</label>
+
+
+<div class="form-field">
+    {% if field.field.widget.input_type == 'radio' %}
+        <div class="d-flex flex-wrap gap-4 mt-2">
+            {% for choice in field %}
+                <div class="form-check form-check-inline m-0">
+                    {{ choice.tag }}
+                    <label class="form-check-label fw-medium text-dark ms-2 cursor-pointer" for="{{ choice.id_for_label }}">
+                        {{ choice.choice_label }}
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        {{ field }}
+    {% endif %}
+</div>
+
+
+{% if field.help_text %}
+<div class="form-text">
+{{ field.help_text }}
+</div>
+{% endif %}
+
+
+{% if field.errors %}
+<div class="text-danger animate__animated animate__headShake">
+<i class="bi bi-exclamation-circle me-1"></i>
+{{ field.errors.0 }}
+</div>
+{% endif %}
+
+</div>
+
+{% endfor %}
+
+
+
+<div class="d-grid gap-3 mt-5">
+
+<button type="submit"
+class="btn btn-primary btn-lg py-3 fw-bold shadow-sm">
+
+Next Step
+<i class="bi bi-arrow-right ms-2"></i>
+
+</button>
+
+
+<a href="/" class="btn btn-outline-secondary py-2">
+
+<i class="bi bi-x-circle me-2"></i>
+Cancel & Return
+
+</a>
+
+</div>
+
+</form>
+
+</div>
+
+
+
+<div class="card-footer bg-light py-3 border-0 text-center">
+
+<p class="text-muted small mb-0">
+<i class="bi bi-shield-lock me-1"></i>
+Your information is kept secure and private.
+</p>
+
+</div>
+
+
+</div>
+</div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Queue Analytics{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h1 class="h3 mb-0 text-gray-800">Queue Performance Analytics</h1>
+        <p class="text-muted small">Showing statistics for <strong>{{ selected_date|date:"F d, Y" }}</strong></p>
+    </div>
+    <div class="col-md-6 d-flex justify-content-md-end mt-3 mt-md-0">
+        <form method="get" class="d-flex align-items-center gap-2">
+            <label for="date" class="small fw-bold text-nowrap">Change Date:</label>
+            <input type="date" name="date" id="date" class="form-control form-control-sm" value="{{ selected_date|date:'Y-m-d' }}" onchange="this.form.submit()">
+            <a href="{% url 'tokens:queue_analytics' %}" class="btn btn-sm btn-outline-secondary">Today</a>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4 mb-5 text-center">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white p-3 shadow-sm border-0">
+            <h3>{{ total_tokens }}</h3>
+            <p class="mb-0">Total Tokens</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white p-3 shadow-sm border-0">
+            <h3>{{ completed_tokens }}</h3>
+            <p class="mb-0">Completed</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark p-3 shadow-sm border-0">
+            <h3>{{ waiting_tokens }}</h3>
+            <p class="mb-0">Waiting</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white p-3 shadow-sm border-0">
+            <h3>{{ avg_wait }}</h3>
+            <p class="mb-0">Avg Wait Time</p>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0">Service Statistics</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Service Name</th>
+                    <th>Total Tokens</th>
+                    <th>Completed</th>
+                    <th>Waiting</th>
+                    <th>Efficiency</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in service_stats %}
+                <tr>
+                    <td>{{ stat.name }}</td>
+                    <td>{{ stat.total }}</td>
+                    <td>{{ stat.completed }}</td>
+                    <td>{{ stat.waiting }}</td>
+                    <td>
+                        {% if stat.total > 0 %}
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-success" style="width: {% widthratio stat.completed stat.total 100 %}%"></div>
+                            </div>
+                            <small class="text-muted">{% widthratio stat.completed stat.total 100 %}%</small>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

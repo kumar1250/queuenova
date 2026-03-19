@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ service.name }} - {{ service.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center animate__animated animate__fadeIn">
+    <div class="col-lg-8">
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-4">
+            <div class="card-header bg-primary py-5 text-center border-0">
+                <div class="bg-white p-2 rounded-circle d-inline-flex mb-3 shadow-sm">
+                    <i class="bi bi-info-circle text-primary fs-3"></i>
+                </div>
+                <h2 class="text-white fw-bold mb-1">{{ service.name }}</h2>
+                <p class="text-white-50 mb-0"><i class="bi bi-building me-1"></i>{{ service.organization.name }}</p>
+            </div>
+            
+            <div class="card-body p-4 p-md-5">
+                <div class="row g-4 mb-5">
+                    <div class="col-md-7">
+                        <h5 class="fw-bold mb-3">Service Description</h5>
+                        <p class="text-muted fs-5 lh-base">{{ service.description|default:"No description provided for this service." }}</p>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="bg-light p-4 rounded-4 border border-light shadow-sm">
+                            <h6 class="fw-bold text-uppercase text-muted small mb-4">Quick Stats</h6>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-white p-2 rounded-3 me-3 shadow-sm">
+                                    <i class="bi bi-wallet2 text-success"></i>
+                                </div>
+                                <div>
+                                    <div class="small text-muted">Cost</div>
+                                    <div class="fw-bold">{% if service.is_payment_required %}₹{{ service.payment_amount }}{% else %}Free Service{% endif %}</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-white p-2 rounded-3 me-3 shadow-sm">
+                                    <i class="bi bi-clock-history text-primary"></i>
+                                </div>
+                                <div>
+                                    <div class="small text-muted">Avg. Wait Time</div>
+                                    <div class="fw-bold">{{ service.average_service_time }} mins per person</div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex align-items-center">
+                                <div class="bg-white p-2 rounded-3 me-3 shadow-sm">
+                                    <i class="bi bi-shield-check text-info"></i>
+                                </div>
+                                <div>
+                                    <div class="small text-muted">Status</div>
+                                    <div class="fw-bold text-success"><span class="badge bg-success bg-opacity-10 text-success">Available Now</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-primary border-0 shadow-sm rounded-4 p-4 mb-5">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white p-3 rounded-circle me-4 shadow-sm">
+                            <i class="bi bi-cash-stack text-primary fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1">Payment Information</h6>
+                            <p class="mb-0 text-muted small">
+                                {% if service.is_payment_required %}
+                                    This service requires a payment of <strong>₹{{ service.payment_amount }}</strong>. 
+                                    {% if service.is_online_payment_allowed and service.is_offline_payment_allowed %}
+                                        You can pay <strong>Online</strong> via Razorpay or <strong>Offline</strong> at the counter.
+                                    {% elif service.is_online_payment_allowed %}
+                                        Only <strong>Online Payment</strong> is currently accepted.
+                                    {% elif service.is_offline_payment_allowed %}
+                                        Only <strong>Offline Payment</strong> at the counter is currently accepted.
+                                    {% endif %}
+                                {% else %}
+                                    This is a <strong>Free Service</strong>. No payment is required to join the queue.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-3">
+                    <a href="{% url 'tokens:service_form' service.id %}" class="btn btn-primary btn-lg py-3 fw-bold shadow-sm rounded-pill">
+                        Generate My Token Now <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                    <a href="{% url 'organizations:organization_list' %}" class="btn btn-outline-secondary py-2 border-0">
+                        <i class="bi bi-chevron-left me-2"></i>Back to Organizations
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-footer bg-light py-3 border-0 text-center">
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-info-circle me-1"></i>Estimated waiting time is calculated based on current queue status.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
