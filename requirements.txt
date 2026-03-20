@@ -15,4 +15,3 @@ django-countries==7.5.1
 django-filter==24.1
 PyJWT==2.8.0
 cryptography==42.0.8
-
