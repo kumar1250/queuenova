@@ -11,6 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+
 CSRF_TRUSTED_ORIGINS = [
     'https://*.onrender.com',
 ]
@@ -76,7 +77,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'smart_queue.wsgi.application'
 
-# ─── Database (PostgreSQL on Render) ─────────────────────────────────────────
+# ─── Database ────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///db.sqlite3',
@@ -103,6 +104,8 @@ LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = 'users:login'
 
 # ─── Email ────────────────────────────────────────────────────────────────────
+# FIX 3: Increased timeout from 10s to 30s — cloud servers need more time
+# to establish SMTP connections to Gmail. 10s was too short on Render.
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
@@ -111,7 +114,39 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = f'Queue Nova <{os.environ.get("EMAIL_HOST_USER", "")}>'
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
-EMAIL_TIMEOUT = 10
+EMAIL_TIMEOUT = 30   # was 10 — too short for Render → SMTP timeout errors
+
+# ─── Logging — shows errors in Render Dashboard → Logs ───────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'tokens': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'payments': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
