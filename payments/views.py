@@ -17,14 +17,12 @@ from .models import Payment
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
 
-# ─────────────────────────────────────────────────────────────
-# WEBHOOK  (async, fired by Razorpay after payment.captured)
-# Token is NOT created here — the callback handles that.
-# The webhook only updates the Payment status in case the
-# callback somehow failed (e.g. user closed the browser).
-# ─────────────────────────────────────────────────────────────
 @method_decorator(csrf_exempt, name='dispatch')
 class RazorpayWebhookView(View):
+    """
+    Backup: Razorpay calls this directly on their server after payment.
+    Only creates token if the callback missed it (e.g. user closed browser).
+    """
 
     def post(self, request):
         payload = request.body
@@ -33,7 +31,6 @@ class RazorpayWebhookView(View):
         if not signature:
             return HttpResponseBadRequest("Missing signature")
 
-        # --- Verify signature (clean, no broken logic) ---
         try:
             client.utility.verify_webhook_signature(
                 payload.decode('utf-8'),
@@ -43,7 +40,6 @@ class RazorpayWebhookView(View):
         except Exception:
             return HttpResponseBadRequest("Invalid signature")
 
-        # --- Process event ---
         try:
             data = json.loads(payload)
             event = data.get('event')
@@ -56,14 +52,11 @@ class RazorpayWebhookView(View):
                 payment = Payment.objects.filter(razorpay_order_id=order_id).first()
 
                 if payment and payment.status != 'completed':
-                    # Payment was completed but callback may have missed it
-                    # (e.g. user closed browser). Mark complete and create token.
                     payment.status = 'completed'
                     payment.razorpay_payment_id = payment_id
                     payment.transaction_id = payment_id
                     payment.save()
 
-                    # Only create token if not already created
                     from tokens.models import Token
                     if not Token.objects.filter(payment=payment).exists():
                         create_token(
@@ -80,10 +73,8 @@ class RazorpayWebhookView(View):
             return HttpResponse(f"Webhook Error: {str(e)}", status=400)
 
 
-# ─────────────────────────────────────────────────────────────
-# CHECKOUT PAGE  (creates Razorpay order, shows payment options)
-# ─────────────────────────────────────────────────────────────
 class PaymentCheckoutView(LoginRequiredMixin, DetailView):
+    """Shows the payment page and creates a Razorpay order."""
     model = Service
     template_name = 'payments/checkout.html'
     pk_url_kwarg = 'service_id'
@@ -99,15 +90,20 @@ class PaymentCheckoutView(LoginRequiredMixin, DetailView):
         if not service.is_online_payment_allowed:
             return context
 
-        amount = int(service.payment_amount * 100)  # paise
+        amount = int(service.payment_amount * 100)  # convert to paise
         order_data = {
             'amount': amount,
             'currency': 'INR',
             'payment_capture': '1'
         }
 
+        # ── FIX 1: Only add transfers if using LIVE keys ──────────────────
+        # Test keys (rzp_test_...) do NOT support Razorpay Route/transfers.
+        # Adding transfers with test keys causes "This transfer is not supported" error.
+        is_live_key = settings.RAZORPAY_KEY_ID.startswith('rzp_live_')
         account_id = service.organization.razorpay_account_id
-        if account_id and len(account_id) == 18 and account_id.startswith('acc_'):
+
+        if is_live_key and account_id and len(account_id) == 18 and account_id.startswith('acc_'):
             order_data['transfers'] = [
                 {
                     'account': account_id,
@@ -115,12 +111,13 @@ class PaymentCheckoutView(LoginRequiredMixin, DetailView):
                     'currency': 'INR',
                 }
             ]
+        # ─────────────────────────────────────────────────────────────────
 
         try:
             order = client.order.create(data=order_data)
 
             transfer_id = None
-            if 'transfers' in order and len(order['transfers']) > 0:
+            if 'transfers' in order and len(order.get('transfers', [])) > 0:
                 transfer_id = order['transfers'][0].get('id')
 
             self.request.session[f'transfer_id_{service.id}'] = transfer_id
@@ -130,24 +127,17 @@ class PaymentCheckoutView(LoginRequiredMixin, DetailView):
             context['razorpay_amount'] = amount
 
         except Exception as e:
-            error_msg = str(e)
-            if "The account must be 18 characters" in error_msg:
-                context['razorpay_error'] = (
-                    "Configuration Error: Organization has an invalid "
-                    "Razorpay Linked Account ID. Please contact support."
-                )
-            else:
-                context['razorpay_error'] = error_msg
+            context['razorpay_error'] = str(e)
 
         return context
 
 
-# ─────────────────────────────────────────────────────────────
-# CALLBACK  (called by Razorpay after payment, in user's browser)
-# This is the PRIMARY place where token is created.
-# ─────────────────────────────────────────────────────────────
 @method_decorator(csrf_exempt, name='dispatch')
 class RazorpayCallbackView(View):
+    """
+    Primary handler: Razorpay redirects user's browser here after payment.
+    This is where the token is created.
+    """
 
     def post(self, request, service_id):
         if not request.user.is_authenticated:
@@ -171,17 +161,16 @@ class RazorpayCallbackView(View):
         }
 
         try:
-            # Verify signature — raises exception if invalid
             client.utility.verify_payment_signature(params_dict)
         except Exception:
             messages.error(request, "Payment verification failed. Please contact support.")
             return redirect('payments:payment_checkout', service_id=service.id)
 
-        # Read form_data from session BEFORE creating the payment object
+        # Read form_data BEFORE creating the payment record
         form_data   = request.session.get(f'form_data_{service_id}')
         transfer_id = request.session.pop(f'transfer_id_{service_id}', None)
 
-        # Avoid duplicate payment records if callback fires more than once
+        # get_or_create prevents duplicate records if this runs twice
         payment, created = Payment.objects.get_or_create(
             razorpay_order_id=razorpay_order_id,
             defaults=dict(
@@ -194,12 +183,11 @@ class RazorpayCallbackView(View):
                 razorpay_payment_id=razorpay_payment_id,
                 razorpay_signature=razorpay_signature,
                 razorpay_transfer_id=transfer_id,
-                form_data=form_data,       # ← FIX: was missing before
+                form_data=form_data,
             )
         )
 
         if not created:
-            # Payment record already existed (webhook beat us here); just update
             payment.status = 'completed'
             payment.razorpay_payment_id = razorpay_payment_id
             payment.razorpay_signature  = razorpay_signature
@@ -209,7 +197,7 @@ class RazorpayCallbackView(View):
         request.session.pop(f'form_data_{service_id}', None)
         request.session.pop(f'payment_id_{service_id}', None)
 
-        # Create token only if not already created by webhook
+        # If webhook already created the token, just redirect to it
         from tokens.models import Token
         existing_token = Token.objects.filter(payment=payment).first()
         if existing_token:
@@ -221,10 +209,8 @@ class RazorpayCallbackView(View):
         return redirect('tokens:token_detail', token_id=token.id)
 
 
-# ─────────────────────────────────────────────────────────────
-# OFFLINE PAYMENT
-# ─────────────────────────────────────────────────────────────
 class OfflinePaymentView(LoginRequiredMixin, View):
+    """User chooses to pay cash at the counter. Token created after admin approval."""
 
     def post(self, request, service_id):
         service = get_object_or_404(Service, id=service_id)
@@ -249,10 +235,8 @@ class OfflinePaymentView(LoginRequiredMixin, View):
         })
 
 
-# ─────────────────────────────────────────────────────────────
-# DIRECT UPI PAYMENT
-# ─────────────────────────────────────────────────────────────
 class UpiPaymentView(LoginRequiredMixin, View):
+    """User pays via UPI app and submits their UTR/transaction ID."""
 
     def post(self, request, service_id):
         service = get_object_or_404(Service, id=service_id)
@@ -300,10 +284,8 @@ class UpiPaymentView(LoginRequiredMixin, View):
         return redirect('tokens:token_detail', token_id=token.id)
 
 
-# ─────────────────────────────────────────────────────────────
-# SIMULATE / TEST PAYMENT  (skips real money, for testing)
-# ─────────────────────────────────────────────────────────────
 class SimulatePaymentView(LoginRequiredMixin, View):
+    """Test button — skips real payment, creates a fake completed payment and token."""
 
     def post(self, request, service_id):
         service = get_object_or_404(Service, id=service_id)
