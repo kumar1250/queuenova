@@ -17,7 +17,7 @@ services:
           name: smartqueue_db
           property: connectionString
       - key: SECRET_KEY
-        generateValue: true
+        generateValue: false
       - key: DEBUG
         value: "False"
       - key: PYTHON_VERSION
@@ -32,3 +32,7 @@ services:
         sync: false
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://queuenova.onrender.com"
+      - key: ALLOWED_HOSTS
+        value: "queuenova.onrender.com"
