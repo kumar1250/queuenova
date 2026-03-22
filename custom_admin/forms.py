@@ -1,12 +1,26 @@
+import base64
 from django import forms
 from organizations.models import Organization, Service
 from dynamic_forms.models import FormField
 from django.forms import inlineformset_factory
 
+
 class OrganizationForm(forms.ModelForm):
+    # Replace ImageField with a plain file input that we convert to base64
+    upi_qr_image = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+        label="UPI QR Code Image",
+        help_text="Upload QR code image. It will be stored securely in the database."
+    )
+
     class Meta:
         model = Organization
-        fields = ['name', 'description', 'address', 'contact_number', 'email', 'phone', 'razorpay_account_id', 'upi_id', 'upi_qr_code', 'is_offline_payment_available']
+        fields = [
+            'name', 'description', 'address', 'contact_number',
+            'email', 'phone', 'razorpay_account_id',
+            'upi_id', 'is_offline_payment_available'
+        ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter organization name'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 5, 'placeholder': 'Brief description'}),
@@ -16,44 +30,64 @@ class OrganizationForm(forms.ModelForm):
             'phone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Phone'}),
             'razorpay_account_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Razorpay Account ID'}),
             'upi_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VPA / UPI ID (e.g. name@bank)'}),
-            'upi_qr_code': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'is_offline_payment_available': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def save(self, commit=True):
+        org = super().save(commit=False)
+        # Convert uploaded image to base64 and store in the TextField
+        image_file = self.cleaned_data.get('upi_qr_image')
+        if image_file:
+            img_bytes = image_file.read()
+            mime = image_file.content_type or 'image/png'
+            b64 = base64.b64encode(img_bytes).decode('utf-8')
+            org.upi_qr_code_data = f"data:{mime};base64,{b64}"
+        if commit:
+            org.save()
+        return org
+
 
 class OrganizationSelect(forms.Select):
     def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
         option = super().create_option(name, value, label, selected, index, subindex, attrs)
         if value:
             try:
-                # Handle ModelChoiceIteratorValue for Django 5.0+
                 raw_value = value.value if hasattr(value, "value") else value
-                
-                # Try to convert to int, catch failures
                 try:
                     val_id = int(str(raw_value))
                     if hasattr(self, 'queryset') and self.queryset is not None:
                         org = self.queryset.get(pk=val_id)
-                        option["attrs"]["data-offline-available"] = "true" if org.is_offline_payment_available else "false"
+                        option["attrs"]["data-offline-available"] = (
+                            "true" if org.is_offline_payment_available else "false"
+                        )
                 except (ValueError, TypeError):
                     pass
             except (Organization.DoesNotExist, AttributeError):
                 pass
         return option
 
+
 class ServiceForm(forms.ModelForm):
-    # Additional fields to update organization's UPI info directly from service edit
+    # UPI fields to update the organization's UPI info from service edit
     upi_id = forms.CharField(
-        required=False, 
+        required=False,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'VPA / UPI ID (e.g. name@bank)'})
     )
-    upi_qr_code = forms.ImageField(
+    upi_qr_image = forms.ImageField(
         required=False,
-        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+        label="UPI QR Code Image",
+        help_text="Upload QR code image. Stored securely in the database."
     )
 
     class Meta:
         model = Service
-        fields = ['organization', 'name', 'description', 'is_payment_required', 'is_online_payment_allowed', 'is_offline_payment_allowed', 'is_upi_payment_allowed', 'payment_amount', 'average_service_time', 'is_active']
+        fields = [
+            'organization', 'name', 'description',
+            'is_payment_required', 'is_online_payment_allowed',
+            'is_offline_payment_allowed', 'is_upi_payment_allowed',
+            'payment_amount', 'average_service_time', 'is_active'
+        ]
         widgets = {
             'organization': OrganizationSelect(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Service name (e.g. General OPD)'}),
@@ -69,13 +103,9 @@ class ServiceForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Pass the queryset to the custom widget
         self.fields['organization'].widget.queryset = self.fields['organization'].queryset
-        
-        # Prepopulate UPI ID and QR code from the service's organization
         if self.instance and self.instance.pk and self.instance.organization:
             self.fields['upi_id'].initial = self.instance.organization.upi_id
-            self.fields['upi_qr_code'].initial = self.instance.organization.upi_qr_code
 
     def clean(self):
         cleaned_data = super().clean()
@@ -90,7 +120,6 @@ class ServiceForm(forms.ModelForm):
                     "At least one payment method (Online, Offline, or UPI) must be allowed when payment is required."
                 )
         else:
-            # If payment not required, ensure these are False
             cleaned_data['is_online_payment_allowed'] = False
             cleaned_data['is_offline_payment_allowed'] = False
             cleaned_data['is_upi_payment_allowed'] = False
@@ -101,18 +130,23 @@ class ServiceForm(forms.ModelForm):
     def save(self, commit=True):
         service = super().save(commit=commit)
         if commit:
-            # Update organization's UPI details
             org = service.organization
             upi_id = self.cleaned_data.get('upi_id')
-            upi_qr_code = self.cleaned_data.get('upi_qr_code')
-            
+            image_file = self.cleaned_data.get('upi_qr_image')
+
             if upi_id is not None:
                 org.upi_id = upi_id
-            if upi_qr_code is not None:
-                org.upi_qr_code = upi_qr_code
-            
+
+            # Convert uploaded image to base64 and save in database
+            if image_file:
+                img_bytes = image_file.read()
+                mime = image_file.content_type or 'image/png'
+                b64 = base64.b64encode(img_bytes).decode('utf-8')
+                org.upi_qr_code_data = f"data:{mime};base64,{b64}"
+
             org.save()
         return service
+
 
 class FormFieldForm(forms.ModelForm):
     class Meta:
@@ -126,10 +160,11 @@ class FormFieldForm(forms.ModelForm):
             'order': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
         }
 
+
 FormFieldFormSet = inlineformset_factory(
-    Service, 
-    FormField, 
-    form=FormFieldForm, 
-    extra=1, 
+    Service,
+    FormField,
+    form=FormFieldForm,
+    extra=1,
     can_delete=True
 )
