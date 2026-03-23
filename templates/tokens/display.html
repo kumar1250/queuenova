@@ -1,228 +1,156 @@
 {% extends 'base.html' %}
-
-{% block title %}Public Queue Display{% endblock %}
+{% block title %}Live Queue Display{% endblock %}
 
 {% block extra_css %}
 <style>
-    :root {
-        --display-bg: #f8fafc;
-        --card-bg: #ffffff;
-        --text-main: #0f172a;
-        --text-muted: #64748b;
-        --success: #16a34a;
-        --border: #e2e8f0;
-        
-        /* Brighter Variety Colors */
-        --lite-blue: #e0f2fe;
-        --lite-emerald: #dcfce7;
-        --lite-amber: #fef3c7;
-        --brite-blue: #0284c7;
-        --brite-emerald: #059669;
-        --brite-amber: #d97706;
-    }
+/* Hide nav & footer for display mode */
+.top-navbar, .admin-main > header, footer { display: none !important; }
+main.py-5 { padding: 0 !important; }
+main > div { padding: 0 !important; }
 
-    body.display-mode {
-        background-color: var(--display-bg);
-        color: var(--text-main);
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
+body { background: #0d0d1a; }
 
-    .display-mode .navbar, .display-mode footer {
-        display: none !important;
-    }
+.display-header {
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 1.25rem 3rem;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.display-brand { font-family:'Syne',sans-serif; font-weight:900; font-size:1.5rem; color:white; }
+.display-brand span { color: var(--accent); }
+.display-clock { font-family:'Syne',sans-serif; font-weight:700; font-size:1.1rem; color:rgba(255,255,255,0.5); }
 
-    .display-mode main {
-        margin-left: 0 !important;
-        padding: 0 !important;
-    }
+.display-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; padding: 2rem 3rem; }
 
-    .display-header {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(12px);
-        border-bottom: 2px solid var(--border);
-        padding: 1.5rem 4rem;
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-    }
+.display-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+}
+.display-card:hover { border-color: rgba(233,69,96,0.3); }
 
-    .brand-logo {
-        background: linear-gradient(135deg, var(--brite-blue), var(--brite-emerald));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-size: 2.25rem;
-        font-weight: 900;
-        letter-spacing: -1.5px;
-    }
+.display-card-top {
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex; align-items: center; justify-content: space-between;
+}
+.counter-tag {
+    font-size: 0.65rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.12em; padding: 0.3em 0.8em;
+    background: rgba(233,69,96,0.15); color: var(--accent);
+    border-radius: 6px; border: 1px solid rgba(233,69,96,0.2);
+}
+.service-name-display { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; color:white; margin-top:6px; }
 
-    /* Queue Card Variety */
-    .queue-card {
-        border-radius: 2.5rem;
-        transition: all 0.3s ease;
-        border: 2px solid var(--border);
-        overflow: hidden;
-        cursor: pointer;
-    }
+.display-serving { padding: 1.75rem 1.5rem; text-align: center; }
+.now-serving-label { font-size:0.6rem; font-weight:800; text-transform:uppercase; letter-spacing:0.2em; color:rgba(255,255,255,0.25); margin-bottom:1rem; }
+.serving-avatar {
+    width: 70px; height: 70px; border-radius: 50%;
+    object-fit: cover; border: 3px solid rgba(255,255,255,0.1);
+    margin: 0 auto 0.75rem;
+}
+.serving-avatar-placeholder {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: var(--accent); color: white;
+    font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.75rem;
+    border: 3px solid rgba(255,255,255,0.1);
+}
+.serving-name { font-family:'Syne',sans-serif; font-weight:700; font-size:0.95rem; color:rgba(255,255,255,0.8); }
+.serving-big-num {
+    font-family:'Syne',sans-serif; font-weight:900;
+    font-size:5rem; line-height:1; color:white;
+    animation: subtlePulse 3s ease-in-out infinite;
+}
+@keyframes subtlePulse { 0%,100%{opacity:1} 50%{opacity:0.75} }
+.empty-serving { font-size:0.85rem; color:rgba(255,255,255,0.2); padding:2rem 0; }
 
-    .queue-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-    }
-
-    /* Card Color Variations - Brighter */
-    .card-style-1 { background-color: #bae6fd; border-color: #7dd3fc; }
-    .card-style-1 .counter-badge { color: #0369a1; background: #f0f9ff; }
-    
-    .card-style-2 { background-color: #bbf7d0; border-color: #86efac; }
-    .card-style-2 .counter-badge { color: #15803d; background: #f0fdf4; }
-    
-    .card-style-3 { background-color: #fde68a; border-color: #fcd34d; }
-    .card-style-3 .counter-badge { color: #b45309; background: #fffbeb; }
-
-    .card-header-v2 {
-        padding: 2.5rem 2.5rem 1.5rem;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .counter-badge {
-        font-size: 0.8rem;
-        font-weight: 950;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        padding: 0.5rem 1.25rem;
-        border-radius: 12px;
-    }
-
-    .serving-container {
-        padding: 3rem 2rem;
-        text-align: center;
-    }
-
-    .serving-number-v2 {
-        font-size: 8.5rem;
-        font-weight: 950;
-        line-height: 1;
-        color: var(--text-main);
-        margin: 1.5rem 0;
-    }
-
-    /* Profile Styles */
-    .profile-img-lg { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 6px solid #fff; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-    .profile-placeholder { background: var(--text-main); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; }
-
-    /* Popdown List */
-    .popdown-list {
-        background: rgba(255, 255, 255, 0.6);
-        border-top: 1px solid rgba(0,0,0,0.05);
-        padding: 2rem 2.5rem;
-    }
-
-    .mini-badge {
-        background: #fff;
-        padding: 0.8rem 1.25rem;
-        border-radius: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        border: 2px solid var(--border);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-    }
-
-    .chevron-icon {
-        transition: transform 0.3s ease;
-        color: var(--text-muted);
-    }
-    .queue-card[aria-expanded="true"] .chevron-icon {
-        transform: rotate(180deg);
-    }
+.display-queue { padding: 1rem 1.5rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); }
+.queue-label { font-size:0.6rem; font-weight:800; text-transform:uppercase; letter-spacing:0.15em; color:rgba(255,255,255,0.25); margin-bottom:0.75rem; }
+.queue-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.queue-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50px; padding: 0.35rem 0.75rem;
+    font-family:'Syne',sans-serif; font-size:0.8rem; font-weight:700; color:white;
+}
+.queue-chip-wait { font-size:0.65rem; color:var(--accent); font-weight:700; }
+.no-queue { font-size:0.78rem; color:rgba(255,255,255,0.2); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="display-mode-container">
-    <header class="display-header d-flex justify-content-center align-items-center">
-        <h1 class="brand-logo mb-0">SMART<span style="color: var(--text-main); font-weight: 400;">QUEUE</span></h1>
-    </header>
+<header class="display-header">
+    <div class="display-brand">Queue<span>Nova</span> <span style="font-size:0.75rem;font-weight:400;color:rgba(255,255,255,0.3);margin-left:8px;">Live Display</span></div>
+    <div class="display-clock" id="liveClock"></div>
+</header>
 
-    <div class="container-fluid px-5 pt-5 pb-5">
-        <div class="row g-5">
-            {% for data in display_data %}
-            <div class="col-xl-4 col-lg-6">
-                <!-- Clickable Card -->
-                <div class="queue-card card-style-{{ forloop.counter0|divisibleby:3|yesno:'1,2,3' }} h-100" 
-                     data-bs-toggle="collapse" 
-                     data-bs-target="#queueCollapse{{ forloop.counter }}" 
-                     aria-expanded="false">
-                    
-                    <div class="card-header-v2">
-                        <div>
-                            <span class="counter-badge">Counter {{ forloop.counter }}</span>
-                            <h2 class="h3 mb-0 fw-black text-dark text-truncate mt-2">{{ data.service.name }}</h2>
-                        </div>
-                        <i class="bi bi-chevron-down fs-4 chevron-icon"></i>
-                    </div>
-                    
-                    <div class="serving-container">
-                        <div class="fw-black text-uppercase text-muted small mb-4" style="letter-spacing: 3px;">Now Serving</div>
-                        {% if data.serving %}
-                            <div class="mb-4">
-                                {% if data.serving.user.profile_picture %}
-                                    <img src="{{ data.serving.user.profile_picture.url }}" class="profile-img-lg" alt="Profile">
-                                {% else %}
-                                    <div class="profile-img-lg profile-placeholder fs-1 mx-auto">
-                                        {{ data.serving.user.full_name|default:data.serving.user.email|slice:":1"|upper }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <h3 class="h4 mb-0 text-dark fw-black">{{ data.serving.user.full_name|default:"Client" }}</h3>
-                            <div class="serving-number-v2 animate__animated animate__pulse animate__infinite">
-                                #{{ data.serving.token_number }}
-                            </div>
-                        {% else %}
-                            <div class="py-5">
-                                <div class="serving-number-v2 opacity-10">---</div>
-                                <div class="text-muted fw-bold">Waiting for next...</div>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Popdown List (Collapsible) -->
-                    <div class="collapse" id="queueCollapse{{ forloop.counter }}">
-                        <div class="popdown-list">
-                            <div class="fw-black text-uppercase text-muted small mb-4">Waiting Queue Member's</div>
-                            <div class="d-flex flex-wrap gap-3">
-                                {% for token in data.queue_list %}
-                                    <div class="mini-badge">
-                                        {% if token.user.profile_picture %}
-                                            <img src="{{ token.user.profile_picture.url }}" style="width: 32px; height: 32px; border-radius: 50%;" alt="Profile">
-                                        {% else %}
-                                            <div style="width: 32px; height: 32px; border-radius: 50%;" class="profile-placeholder small">
-                                                {{ token.user.full_name|default:token.user.email|slice:":1"|upper }}
-                                            </div>
-                                        {% endif %}
-                                        <div class="d-flex flex-column">
-                                            <span class="fw-black text-dark">#{{ token.token_number }}</span>
-                                            <span class="text-primary fw-black" style="font-size: 0.7rem;">~{{ token.expected_wait }}m</span>
-                                        </div>
-                                    </div>
-                                {% empty %}
-                                    <div class="text-muted italic small">No members in queue</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div class="display-grid">
+    {% for data in display_data %}
+    <div class="display-card">
+        <div class="display-card-top">
+            <div>
+                <span class="counter-tag">Counter {{ forloop.counter }}</span>
+                <div class="service-name-display">{{ data.service.name }}</div>
             </div>
-            {% endfor %}
+            <div style="width:8px;height:8px;border-radius:50%;background:{% if data.serving %}#10b981{% else %}rgba(255,255,255,0.2){% endif %};"></div>
+        </div>
+
+        <div class="display-serving">
+            <div class="now-serving-label">Now Serving</div>
+            {% if data.serving %}
+                {% if data.serving.user.profile_picture %}
+                    <img src="{{ data.serving.user.profile_picture }}" class="serving-avatar" alt="">
+                {% else %}
+                    <div class="serving-avatar-placeholder">
+                        {{ data.serving.user.full_name|default:data.serving.user.email|slice:":1"|upper }}
+                    </div>
+                {% endif %}
+                <div class="serving-name">{{ data.serving.user.full_name|default:"Guest" }}</div>
+                <div class="serving-big-num">#{{ data.serving.token_number }}</div>
+            {% else %}
+                <div class="empty-serving">
+                    <i class="bi bi-hourglass d-block mb-2" style="font-size:2rem;color:rgba(255,255,255,0.1);"></i>
+                    Waiting for next...
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="display-queue">
+            <div class="queue-label">Up next</div>
+            <div class="queue-chips">
+                {% for token in data.queue_list %}
+                <div class="queue-chip">
+                    <span>#{{ token.token_number }}</span>
+                    <span class="queue-chip-wait">~{{ token.expected_wait }}m</span>
+                </div>
+                {% empty %}
+                <div class="no-queue">Queue is empty</div>
+                {% endfor %}
+            </div>
         </div>
     </div>
+    {% empty %}
+    <div style="grid-column:1/-1;text-align:center;padding:4rem;color:rgba(255,255,255,0.2);">
+        <i class="bi bi-display" style="font-size:3rem;display:block;margin-bottom:1rem;"></i>
+        <p>No active services at the moment.</p>
+    </div>
+    {% endfor %}
 </div>
 
 <script>
-    // Auto-reload to fetch new data (respects open collapses)
-    setTimeout(() => location.reload(), 45000);
+// Live clock
+function updateClock() {
+    const now = new Date();
+    document.getElementById('liveClock').textContent =
+        now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+updateClock();
+setInterval(updateClock, 1000);
+// Auto-reload every 45 seconds
+setTimeout(() => location.reload(), 45000);
 </script>
 {% endblock %}
