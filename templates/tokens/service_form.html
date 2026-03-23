@@ -1,317 +1,125 @@
 {% extends 'base.html' %}
-
-{% block title %}Service Form - {{ service.name }}{% endblock %}
+{% block title %}Register — {{ service.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
+.form-wrap { max-width: 580px; margin: 0 auto; }
+.step-bar { display: flex; align-items: center; margin-bottom: 2rem; }
+.step-item { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+.step-item:not(:last-child)::after { content:''; position:absolute; top:18px; left:50%; width:100%; height:2px; background:var(--border); z-index:0; }
+.step-circle { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family:'Syne',sans-serif; font-weight:700; font-size:0.875rem; position: relative; z-index: 1; border: 2px solid var(--border); background: white; color: var(--text-muted); }
+.step-item.active .step-circle { background: var(--accent); border-color: var(--accent); color: white; }
+.step-item.done .step-circle { background: var(--success); border-color: var(--success); color: white; }
+.step-item.active::after, .step-item.done::after { background: var(--accent); }
+.step-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-top: 6px; text-align: center; }
+.step-item.active .step-label { color: var(--accent); }
 
-/* ---------------- FIELD SPACING ---------------- */
+.form-field-wrap { margin-bottom: 1.25rem; }
+.form-field-wrap label { font-weight: 600; font-size: 0.85rem; color: var(--text); margin-bottom: 0.4rem; display: block; }
+.form-field-wrap .required-star { color: var(--accent); margin-left: 2px; }
+.form-field-wrap .form-text { font-size: 0.78rem; color: var(--text-muted); margin-top: 5px; }
+.form-field-wrap .field-error { font-size: 0.78rem; color: var(--danger); margin-top: 5px; display: flex; align-items: center; gap: 4px; }
 
-.mb-4{
-    margin-bottom: 1.8rem !important;
-}
-
-.form-label{
-    margin-bottom:8px;
-    font-size:0.95rem;
-}
-
-.form-field{
-    margin-top:6px;
-}
-
-.form-control,
-.form-select{
-    padding:0.85rem 1rem;
-    border-radius:0.75rem;
-    border:1px solid #e2e8f0;
-    background:#f8fafc;
-    transition:all .2s ease;
-}
-
-.form-control:focus,
-.form-select:focus{
-    background:#fff;
-    border-color:var(--primary-color);
-    box-shadow:0 0 0 4px rgba(13,110,253,.1);
-}
-
-.form-text{
-    margin-top:6px;
-    font-size:0.85rem;
-}
-
-.text-danger{
-    margin-top:6px;
-    font-size:0.85rem;
-}
-
-
-/* ---------------- RADIO BUTTON STYLE (FIXED) ---------------- */
-
-.form-field ul{
-    list-style:none;
-    padding:0;
-    margin-top:10px;
-    display:flex;
-    flex-direction:row;
-    flex-wrap:wrap;
-    align-items:center;
-    gap:30px; /* Increased gap between radio button options */
-}
-
-.form-field ul li{
-    display:flex;
-    align-items:center;
-}
-
-.form-field ul li label{
-    display:flex;
-    align-items:center;
-    gap:10px; /* Space between the radio circle and the name */
-    font-weight:500;
-    cursor:pointer;
-    color:#334155;
-    margin-bottom:0;
-    white-space:nowrap;
-}
-
-.form-field ul li input[type="radio"]{
-    width:18px;
-    height:18px;
-    cursor:pointer;
-    accent-color:var(--primary-color);
-    margin:0;
-}
-
-
-/* ---------------- STEP INDICATOR ---------------- */
-
-.step-indicator{
-    display:flex;
-    justify-content:center;
-    margin-bottom:2rem;
-}
-
-.step{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    position:relative;
-    flex:1;
-}
-
-.step:not(:last-child):after{
-    content:'';
-    position:absolute;
-    top:20px;
-    left:50%;
-    width:100%;
-    height:2px;
-    background:#e2e8f0;
-    z-index:1;
-}
-
-.step-circle{
-    width:40px;
-    height:40px;
-    border-radius:50%;
-    background:#fff;
-    border:2px solid #e2e8f0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:600;
-    margin-bottom:8px;
-    position:relative;
-    z-index:2;
-}
-
-.step.active .step-circle{
-    border-color:var(--primary-color);
-    background:var(--primary-color);
-    color:#fff;
-}
-
-.step.active .step-label{
-    color:var(--primary-color);
-    font-weight:600;
-}
-
-.step-label{
-    font-size:0.8rem;
-    color:#94a3b8;
-    text-transform:uppercase;
-    letter-spacing:0.05em;
-}
-
+/* Radio styles */
+.radio-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.radio-option { display: flex; align-items: center; gap: 8px; padding: 0.55rem 1rem; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all 0.15s; }
+.radio-option:has(input:checked) { background: #fff0f3; border-color: var(--accent); color: var(--accent); }
+.radio-option input[type=radio] { accent-color: var(--accent); width: 15px; height: 15px; margin: 0; }
 </style>
 {% endblock %}
 
-
-
 {% block content %}
+<div class="container">
+<div class="form-wrap animate__animated animate__fadeIn">
 
-<div class="row justify-content-center">
-<div class="col-md-7 col-lg-6">
-
-<!-- STEP INDICATOR -->
-
-<div class="step-indicator animate__animated animate__fadeIn">
-
-<div class="step active">
-<div class="step-circle">1</div>
-<div class="step-label">Registration</div>
-</div>
-
-<div class="step">
-<div class="step-circle">2</div>
-<div class="step-label">{% if service.is_payment_required %}Payment{% else %}Verification{% endif %}</div>
-</div>
-
-{% if service.is_payment_required %}
-<div class="step">
-<div class="step-circle">3</div>
-<div class="step-label">Verification</div>
-</div>
-{% endif %}
-
-</div>
-
-
-
-<div class="card shadow-lg border-0 overflow-hidden animate__animated animate__fadeInUp">
-
-<div class="card-header bg-primary py-4 text-center border-0">
-
-<div class="bg-white p-2 rounded-circle d-inline-flex mb-3 shadow-sm">
-<i class="bi bi-file-earmark-text text-primary fs-3"></i>
-</div>
-
-<h3 class="text-white fw-bold mb-0">{{ service.name }}</h3>
-
-<p class="text-white-50 small mb-0 mt-1">
-Please fill in the required information
-</p>
-
-</div>
-
-
-
-<div class="card-body p-4 p-md-5">
-
-{% if service.description %}
-
-<div class="alert alert-info border-0 shadow-sm mb-4 small">
-
-<div class="d-flex">
-<i class="bi bi-info-circle-fill me-2 fs-5"></i>
-<div>{{ service.description|safe }}</div>
-</div>
-
-</div>
-
-{% endif %}
-
-
-
-<form method="post" action="{% url 'tokens:service_form' service.id %}" id="regForm">
-
-{% csrf_token %}
-
-
-{% for field in form %}
-
-<div class="mb-4">
-
-<label for="{{ field.id_for_label }}"
-class="form-label fw-bold text-dark d-flex align-items-center">
-
-{{ field.label }}
-
-{% if field.field.required %}
-<span class="text-danger ms-1">*</span>
-{% endif %}
-
-</label>
-
-
-<div class="form-field">
-    {% if field.field.widget.input_type == 'radio' %}
-        <div class="d-flex flex-wrap gap-4 mt-2">
-            {% for choice in field %}
-                <div class="form-check form-check-inline m-0">
-                    {{ choice.tag }}
-                    <label class="form-check-label fw-medium text-dark ms-2 cursor-pointer" for="{{ choice.id_for_label }}">
-                        {{ choice.choice_label }}
-                    </label>
-                </div>
-            {% endfor %}
+    <!-- Step bar -->
+    <div class="step-bar">
+        <div class="step-item active">
+            <div class="step-circle">1</div>
+            <div class="step-label">Registration</div>
         </div>
-    {% else %}
-        {{ field }}
-    {% endif %}
+        <div class="step-item">
+            <div class="step-circle">2</div>
+            <div class="step-label">{% if service.is_payment_required %}Payment{% else %}Confirm{% endif %}</div>
+        </div>
+        {% if service.is_payment_required %}
+        <div class="step-item">
+            <div class="step-circle">3</div>
+            <div class="step-label">Token</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card border-0 shadow">
+        <!-- Card header -->
+        <div class="card-header border-0 p-4" style="background:var(--brand);border-radius:20px 20px 0 0;">
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:44px;height:44px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;flex-shrink:0;">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+                <div>
+                    <h4 class="text-white fw-800 mb-0" style="font-size:1.15rem;">{{ service.name }}</h4>
+                    <div style="color:rgba(255,255,255,0.5);font-size:0.8rem;"><i class="bi bi-building me-1"></i>{{ service.organization.name }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body p-4">
+            {% if service.description %}
+            <div class="alert alert-info border-0 d-flex gap-2 mb-4" style="font-size:0.85rem;">
+                <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+                <div>{{ service.description }}</div>
+            </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'tokens:service_form' service.id %}" id="regForm">
+                {% csrf_token %}
+
+                {% for field in form %}
+                <div class="form-field-wrap">
+                    <label for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="required-star">*</span>{% endif %}
+                    </label>
+
+                    {% if field.field.widget.input_type == 'radio' %}
+                        <div class="radio-group">
+                            {% for choice in field %}
+                            <label class="radio-option">
+                                {{ choice.tag }} {{ choice.choice_label }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+
+                    {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% if field.errors %}
+                        <div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ field.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        Next Step <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="card-footer bg-white border-0 text-center p-3" style="border-radius:0 0 20px 20px;">
+            <p class="text-muted mb-0" style="font-size:0.78rem;">
+                <i class="bi bi-shield-lock me-1"></i>Your information is secure and private.
+            </p>
+        </div>
+    </div>
 </div>
-
-
-{% if field.help_text %}
-<div class="form-text">
-{{ field.help_text }}
 </div>
-{% endif %}
-
-
-{% if field.errors %}
-<div class="text-danger animate__animated animate__headShake">
-<i class="bi bi-exclamation-circle me-1"></i>
-{{ field.errors.0 }}
-</div>
-{% endif %}
-
-</div>
-
-{% endfor %}
-
-
-
-<div class="d-grid gap-3 mt-5">
-
-<button type="submit"
-class="btn btn-primary btn-lg py-3 fw-bold shadow-sm">
-
-Next Step
-<i class="bi bi-arrow-right ms-2"></i>
-
-</button>
-
-
-<a href="/" class="btn btn-outline-secondary py-2">
-
-<i class="bi bi-x-circle me-2"></i>
-Cancel & Return
-
-</a>
-
-</div>
-
-</form>
-
-</div>
-
-
-
-<div class="card-footer bg-light py-3 border-0 text-center">
-
-<p class="text-muted small mb-0">
-<i class="bi bi-shield-lock me-1"></i>
-Your information is kept secure and private.
-</p>
-
-</div>
-
-
-</div>
-</div>
-</div>
-
 {% endblock %}
