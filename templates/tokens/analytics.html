@@ -1,59 +1,71 @@
 {% extends 'base.html' %}
-
 {% block title %}Queue Analytics{% endblock %}
 
+{% block extra_css %}
+<style>
+.metric-card { border-radius: 16px; padding: 1.5rem; border: none; }
+.metric-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 1rem; }
+.metric-val { font-family:'Syne',sans-serif; font-weight:800; font-size:2.2rem; line-height:1; }
+.metric-label { font-size:0.78rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; margin-top:4px; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4 align-items-center">
-    <div class="col-md-6">
-        <h1 class="h3 mb-0 text-gray-800">Queue Performance Analytics</h1>
-        <p class="text-muted small">Showing statistics for <strong>{{ selected_date|date:"F d, Y" }}</strong></p>
+<!-- Header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-5">
+    <div>
+        <h1 class="fw-800 mb-1" style="font-size:1.5rem;">Queue Analytics</h1>
+        <p class="text-muted mb-0" style="font-size:0.85rem;">Stats for <strong>{{ selected_date|date:"F d, Y" }}</strong></p>
     </div>
-    <div class="col-md-6 d-flex justify-content-md-end mt-3 mt-md-0">
-        <form method="get" class="d-flex align-items-center gap-2">
-            <label for="date" class="small fw-bold text-nowrap">Change Date:</label>
-            <input type="date" name="date" id="date" class="form-control form-control-sm" value="{{ selected_date|date:'Y-m-d' }}" onchange="this.form.submit()">
-            <a href="{% url 'tokens:queue_analytics' %}" class="btn btn-sm btn-outline-secondary">Today</a>
-        </form>
+    <form method="get" class="d-flex align-items-center gap-2">
+        <input type="date" name="date" class="form-control form-control-sm" value="{{ selected_date|date:'Y-m-d' }}" onchange="this.form.submit()" style="width:auto;">
+        <a href="{% url 'tokens:queue_analytics' %}" class="btn btn-sm btn-outline-secondary">Today</a>
+    </form>
+</div>
+
+<!-- Metric cards -->
+<div class="row g-4 mb-5">
+    <div class="col-6 col-md-3">
+        <div class="metric-card card shadow">
+            <div class="metric-icon" style="background:#dbeafe;color:#1d4ed8;"><i class="bi bi-ticket-perforated"></i></div>
+            <div class="metric-val">{{ total_tokens }}</div>
+            <div class="metric-label">Total Tokens</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="metric-card card shadow">
+            <div class="metric-icon" style="background:#d1fae5;color:#065f46;"><i class="bi bi-check-circle"></i></div>
+            <div class="metric-val" style="color:#059669;">{{ completed_tokens }}</div>
+            <div class="metric-label">Completed</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="metric-card card shadow">
+            <div class="metric-icon" style="background:#fef3c7;color:#92400e;"><i class="bi bi-hourglass-split"></i></div>
+            <div class="metric-val" style="color:#d97706;">{{ waiting_tokens }}</div>
+            <div class="metric-label">Waiting</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="metric-card card shadow">
+            <div class="metric-icon" style="background:#ede9fe;color:#5b21b6;"><i class="bi bi-clock-history"></i></div>
+            <div class="metric-val" style="color:#7c3aed;">{{ avg_wait }}</div>
+            <div class="metric-label">Avg Wait (min)</div>
+        </div>
     </div>
 </div>
 
-<div class="row g-4 mb-5 text-center">
-    <div class="col-md-3">
-        <div class="card bg-primary text-white p-3 shadow-sm border-0">
-            <h3>{{ total_tokens }}</h3>
-            <p class="mb-0">Total Tokens</p>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-success text-white p-3 shadow-sm border-0">
-            <h3>{{ completed_tokens }}</h3>
-            <p class="mb-0">Completed</p>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-warning text-dark p-3 shadow-sm border-0">
-            <h3>{{ waiting_tokens }}</h3>
-            <p class="mb-0">Waiting</p>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-info text-white p-3 shadow-sm border-0">
-            <h3>{{ avg_wait }}</h3>
-            <p class="mb-0">Avg Wait Time</p>
-        </div>
-    </div>
-</div>
-
-<div class="card shadow-sm">
-    <div class="card-header bg-white py-3">
-        <h5 class="mb-0">Service Statistics</h5>
+<!-- Service breakdown table -->
+<div class="card border-0 shadow">
+    <div class="card-header border-0 px-4 pt-4 pb-3" style="background:var(--surface);">
+        <h5 class="fw-800 mb-0">Service Breakdown</h5>
     </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
+        <table class="table mb-0">
+            <thead>
                 <tr>
-                    <th>Service Name</th>
-                    <th>Total Tokens</th>
+                    <th>Service</th>
+                    <th>Total</th>
                     <th>Completed</th>
                     <th>Waiting</th>
                     <th>Efficiency</th>
@@ -62,21 +74,23 @@
             <tbody>
                 {% for stat in service_stats %}
                 <tr>
-                    <td>{{ stat.name }}</td>
-                    <td>{{ stat.total }}</td>
-                    <td>{{ stat.completed }}</td>
-                    <td>{{ stat.waiting }}</td>
+                    <td class="fw-600" style="font-size:0.875rem;">{{ stat.name }}</td>
+                    <td class="fw-700">{{ stat.total }}</td>
+                    <td style="color:var(--success);font-weight:600;">{{ stat.completed }}</td>
+                    <td style="color:var(--warning);font-weight:600;">{{ stat.waiting }}</td>
                     <td>
                         {% if stat.total > 0 %}
-                            <div class="progress" style="height: 10px;">
-                                <div class="progress-bar bg-success" style="width: {% widthratio stat.completed stat.total 100 %}%"></div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="flex:1;height:6px;background:var(--surface-3);border-radius:10px;overflow:hidden;">
+                                <div style="height:100%;width:{% widthratio stat.completed stat.total 100 %}%;background:var(--success);border-radius:10px;"></div>
                             </div>
-                            <small class="text-muted">{% widthratio stat.completed stat.total 100 %}%</small>
-                        {% else %}
-                            -
-                        {% endif %}
+                            <span style="font-size:0.78rem;font-weight:700;color:var(--success);width:35px;">{% widthratio stat.completed stat.total 100 %}%</span>
+                        </div>
+                        {% else %}—{% endif %}
                     </td>
                 </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">No data for this date.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
