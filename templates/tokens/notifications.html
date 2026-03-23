@@ -1,35 +1,52 @@
 {% extends 'base.html' %}
+{% block title %}Notifications — Token #{{ token.token_number }}{% endblock %}
 
-{% block title %}Notifications for Token #{{ token.token_number }}{% endblock %}
+{% block extra_css %}
+<style>
+.notif-wrap { max-width: 580px; margin: 0 auto; }
+.notif-item { padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: flex-start; }
+.notif-item:last-child { border-bottom: none; }
+.notif-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; background: #dbeafe; color: #1e40af; }
+.notif-time { font-size: 0.72rem; color: var(--text-light); }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Notifications for Token #{{ token.token_number }}</h5>
-                <a href="{% url 'tokens:token_detail' token.id %}" class="btn btn-sm btn-outline-primary">Back to Token</a>
-            </div>
-            <div class="list-group list-group-flush">
-                {% for notification in notifications %}
-                    <div class="list-group-item p-4">
-                        <div class="d-flex w-100 justify-content-between mb-2">
-                            <h6 class="mb-1">Status Update</h6>
-                            <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
-                        </div>
-                        <p class="mb-1 lead">{{ notification.message }}</p>
-                    </div>
-                {% empty %}
-                    <div class="p-5 text-center text-muted">
-                        <p class="mb-0">No notifications yet. You'll be alerted when your queue status changes.</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-        
-        <div class="mt-4 text-center">
-            <p class="text-muted small">This system simulates SMS and Email alerts by showing them here.</p>
+<div class="container">
+<div class="notif-wrap animate__animated animate__fadeIn">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{% url 'tokens:token_detail' token.id %}" class="btn btn-sm btn-outline-secondary border-0 p-2">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h2 class="fw-800 mb-0" style="font-size:1.2rem;">Notifications</h2>
+            <p class="text-muted mb-0" style="font-size:0.8rem;">Token #{{ token.token_number }} — {{ token.service.name }}</p>
         </div>
     </div>
+
+    <div class="card border-0 shadow">
+        {% for notification in notifications %}
+        <div class="notif-item">
+            <div class="notif-icon"><i class="bi bi-bell-fill"></i></div>
+            <div style="flex:1;min-width:0;">
+                <div class="fw-600 mb-1" style="font-size:0.875rem;">{{ notification.message }}</div>
+                <div class="notif-time"><i class="bi bi-clock me-1"></i>{{ notification.created_at|timesince }} ago</div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="p-5 text-center">
+            <div style="width:60px;height:60px;background:var(--surface-3);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--text-light);margin-bottom:1rem;">
+                <i class="bi bi-bell-slash"></i>
+            </div>
+            <p class="text-muted mb-0" style="font-size:0.875rem;">No notifications yet. You'll be alerted when your queue status changes.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <p class="text-center text-muted mt-3" style="font-size:0.78rem;">
+        <i class="bi bi-info-circle me-1"></i>Notifications appear here when your status changes.
+    </p>
+</div>
 </div>
 {% endblock %}
