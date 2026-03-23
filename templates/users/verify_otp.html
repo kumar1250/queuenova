@@ -1,32 +1,35 @@
 {% extends 'base.html' %}
-
 {% block title %}Verify OTP{% endblock %}
-
+{% block extra_css %}
+<style>
+.auth-wrap{min-height:calc(100vh - 72px);display:flex;align-items:center;justify-content:center;padding:2rem 1rem;}
+.auth-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;}
+.auth-card-header{background:var(--brand);padding:2.5rem 2rem 2rem;text-align:center;}
+.auth-icon-wrap{width:56px;height:56px;background:var(--success);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;color:white;margin-bottom:1rem;}
+.auth-card-body{padding:2rem;}
+.otp-input{font-size:2rem;font-weight:800;text-align:center;letter-spacing:0.5rem;font-family:'Syne',sans-serif;padding:1rem;}
+</style>
+{% endblock %}
 {% block content %}
-<div class="row justify-content-center animate__animated animate__fadeIn">
-    <div class="col-md-5">
-        <div class="card p-4 shadow-lg border-0 animate__animated animate__zoomIn">
-            <h2 class="text-center mb-2 animate__animated animate__slideInDown">Verify OTP</h2>
-            <p class="text-center text-muted small mb-4 animate__animated animate__fadeIn">Please enter the 6-digit OTP sent to your email.</p>
-            
+<div class="auth-wrap">
+    <div class="auth-card animate__animated animate__fadeInUp animate__faster">
+        <div class="auth-card-header">
+            <div class="auth-icon-wrap"><i class="bi bi-shield-check-fill"></i></div>
+            <h2 class="text-white mb-1 fw-800" style="font-size:1.5rem;">Verify OTP</h2>
+            <p class="mb-0" style="color:rgba(255,255,255,0.5);font-size:0.875rem;">Enter the 6-digit code sent to your email</p>
+        </div>
+        <div class="auth-card-body">
             <form method="post">
                 {% csrf_token %}
                 <div class="mb-4">
-                    <label for="otp" class="form-label fw-semibold text-center d-block">One-Time Password</label>
-                    <input type="text" name="otp" id="otp" class="form-control form-control-lg text-center fw-bold" 
-                           placeholder="0 0 0 0 0 0" maxlength="6" pattern="\d{6}" required 
-                           style="letter-spacing: 0.5rem; font-size: 1.5rem;">
-                    <div class="form-text text-center mt-2">Check your inbox (and spam folder) for the code.</div>
+                    <input type="text" name="otp" id="otp" class="form-control otp-input"
+                           placeholder="— — — — — —" maxlength="6" pattern="\d{6}" required autofocus>
+                    <div class="form-text text-center mt-2" style="font-size:0.8rem;">Check your inbox and spam folder. Valid for 10 minutes.</div>
                 </div>
-                
-                <div class="d-grid mt-4">
-                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">Verify OTP</button>
-                </div>
+                <button type="submit" class="btn btn-primary w-100 btn-lg">Verify Code <i class="bi bi-arrow-right ms-1"></i></button>
             </form>
-
-            <div class="mt-4 text-center">
-                <p class="text-muted">Didn't receive the code? <a href="{% url 'users:login' %}" class="text-decoration-none">Back to Login</a></p>
-                <p class="small text-muted">The OTP is valid for 10 minutes.</p>
+            <div class="text-center mt-4">
+                <a href="{% url 'users:password_reset' %}" class="text-decoration-none" style="color:var(--text-muted);font-size:0.875rem;"><i class="bi bi-arrow-left me-1"></i>Request new code</a>
             </div>
         </div>
     </div>
