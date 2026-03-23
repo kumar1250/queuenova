@@ -23,7 +23,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255, blank=True)
     bio = models.TextField(max_length=500, blank=True)
-    profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
+    profile_picture = models.TextField(blank=True, null=True)  # store base64 here
     phone_number = models.CharField(max_length=15, blank=True)
     is_verified = models.BooleanField(default=False)
 
