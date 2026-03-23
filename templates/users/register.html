@@ -3,47 +3,181 @@
 
 {% block extra_css %}
 <style>
-.auth-wrap { min-height:calc(100vh - 72px); display:flex; align-items:center; justify-content:center; padding:2rem 1rem; }
-.auth-card { width:100%; max-width:460px; background:var(--surface); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow-lg); overflow:hidden; }
-.auth-card-header { background:var(--brand); padding:2.5rem 2rem 2rem; text-align:center; }
-.auth-icon-wrap { width:56px;height:56px;background:var(--accent);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;color:white;margin-bottom:1rem; }
-.auth-card-body { padding:2rem; }
+  @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Satoshi:wght@300;400;500;600&display=swap');
+
+  :root {
+    --ink:#0a0a0f; --ink2:#13131a; --ink3:#1c1c28;
+    --edge:rgba(255,255,255,0.07);
+    --glow:#e94560; --glow2:#7c3aed; --glow3:#0ea5e9;
+    --text-hi:#f8f8ff; --text-lo:rgba(248,248,255,0.45);
+    --glass:rgba(255,255,255,0.04); --glass-border:rgba(255,255,255,0.09);
+  }
+
+  .auth-page {
+    min-height:calc(100vh - 72px);
+    background:var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    padding:2rem 1rem; position:relative; overflow:hidden;
+  }
+
+  /* Geometric animated background */
+  .auth-bg { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+  .auth-bg-orb { position:absolute; border-radius:50%; filter:blur(90px); opacity:0.15; animation:orbFloat 9s ease-in-out infinite; }
+  .orb-1{width:450px;height:450px;background:var(--glow3);top:-120px;left:-80px;animation-delay:0s;}
+  .orb-2{width:350px;height:350px;background:var(--glow2);bottom:-100px;right:-60px;animation-delay:-4s;}
+  .orb-3{width:200px;height:200px;background:var(--glow);top:50%;right:20%;animation-delay:-7s;}
+  @keyframes orbFloat{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-25px) scale(1.06);}}
+
+  /* Rotating ring decoration */
+  .auth-ring {
+    position:absolute; right:-120px; top:50%; transform:translateY(-50%);
+    width:400px; height:400px; border-radius:50%;
+    border:1px solid rgba(255,255,255,0.04);
+    animation:ringRotate 20s linear infinite;
+  }
+  .auth-ring::before {
+    content:''; position:absolute; inset:-30px; border-radius:50%;
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  .auth-ring-dot {
+    position:absolute; top:0; left:50%; transform:translate(-50%,-50%);
+    width:8px; height:8px; border-radius:50%;
+    background:var(--glow); box-shadow:0 0 12px var(--glow);
+  }
+  @keyframes ringRotate{ to{transform:translateY(-50%) rotate(360deg);} }
+
+  .auth-grid {
+    position:absolute; inset:0;
+    background-image: linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px), linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);
+    background-size:60px 60px;
+    mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black,transparent);
+  }
+
+  .auth-card {
+    position:relative; z-index:10;
+    width:100%; max-width:460px;
+    background:var(--glass);
+    border:1px solid var(--glass-border);
+    border-radius:24px;
+    backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+    overflow:hidden;
+    animation:cardReveal 0.7s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  @keyframes cardReveal{from{opacity:0;transform:translateY(32px) scale(0.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+  .auth-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg,transparent,var(--glow3),var(--glow2),transparent);
+    animation:shimmerBorder 4s linear infinite; background-size:200% 100%;
+  }
+  @keyframes shimmerBorder{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+
+  .auth-card-inner { padding:2.5rem 2.25rem; }
+
+  .auth-logo-mark {
+    width:52px; height:52px;
+    background:linear-gradient(135deg,var(--glow3),var(--glow2));
+    border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.4rem; color:white; margin-bottom:1.5rem;
+    box-shadow:0 0 32px rgba(14,165,233,0.4);
+    animation:logoGlow2 3s ease-in-out infinite;
+  }
+  @keyframes logoGlow2{0%,100%{box-shadow:0 0 24px rgba(14,165,233,0.3);}50%{box-shadow:0 0 48px rgba(14,165,233,0.6);}}
+
+  .auth-title{font-family:'Clash Display','Syne',sans-serif;font-weight:700;font-size:1.75rem;color:var(--text-hi);margin-bottom:0.3rem;letter-spacing:-0.03em;}
+  .auth-subtitle{color:var(--text-lo);font-size:0.875rem;margin-bottom:2rem;}
+
+  .field-wrap{margin-bottom:1.1rem;position:relative;}
+  .field-label{display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-lo);margin-bottom:0.5rem;transition:color 0.2s;}
+  .field-input-wrap{position:relative;}
+  .field-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.22);font-size:0.9rem;pointer-events:none;transition:color 0.2s;}
+  .auth-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-hi);font-size:0.9rem;padding:0.75rem 0.9rem 0.75rem 2.6rem;outline:none;transition:all 0.25s;-webkit-appearance:none;}
+  .auth-input::placeholder{color:rgba(255,255,255,0.18);}
+  .auth-input:focus{border-color:var(--glow3);background:rgba(14,165,233,0.07);box-shadow:0 0 0 3px rgba(14,165,233,0.12);}
+  .field-wrap:focus-within .field-label{color:var(--glow3);}
+  .field-wrap:focus-within .field-icon{color:var(--glow3);}
+  .field-error{font-size:0.75rem;color:#f87171;margin-top:0.4rem;display:flex;align-items:center;gap:5px;animation:shake 0.4s ease;}
+  .field-help{font-size:0.72rem;color:var(--text-lo);margin-top:0.4rem;}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+  .auth-btn{
+    width:100%;
+    background:linear-gradient(135deg,var(--glow3),var(--glow2));
+    border:none;border-radius:10px;
+    color:white;font-size:0.9rem;font-weight:700;letter-spacing:0.03em;
+    padding:0.85rem;cursor:pointer;position:relative;overflow:hidden;
+    transition:transform 0.2s,box-shadow 0.2s;
+    box-shadow:0 4px 24px rgba(14,165,233,0.3);
+    margin-top:0.5rem;
+  }
+  .auth-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(14,165,233,0.5);}
+  .auth-btn:active{transform:translateY(0);}
+
+  .auth-divider{display:flex;align-items:center;gap:12px;margin:1.5rem 0;}
+  .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--glass-border);}
+  .auth-divider span{font-size:0.75rem;color:var(--text-lo);white-space:nowrap;}
+
+  .auth-footer{text-align:center;}
+  .auth-footer p{font-size:0.82rem;color:var(--text-lo);margin-bottom:0.5rem;}
+  .auth-footer p:last-child{margin-bottom:0;}
+  .auth-link{color:var(--glow3);text-decoration:none;font-weight:600;transition:opacity 0.2s;}
+  .auth-link:hover{opacity:0.75;color:var(--glow3);}
+
+  .auth-card-inner > *{animation:fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both;}
+  .auth-card-inner > *:nth-child(1){animation-delay:0.1s}
+  .auth-card-inner > *:nth-child(2){animation-delay:0.15s}
+  .auth-card-inner > *:nth-child(3){animation-delay:0.2s}
+  .auth-card-inner > *:nth-child(4){animation-delay:0.25s}
+  .auth-card-inner > *:nth-child(5){animation-delay:0.3s}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+
+  @media(max-width:480px){.auth-card-inner{padding:2rem 1.5rem;}.auth-title{font-size:1.5rem;}.auth-ring{display:none;}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="auth-wrap">
-    <div class="auth-card animate__animated animate__fadeInUp animate__faster">
-        <div class="auth-card-header">
-            <div class="auth-icon-wrap"><i class="bi bi-person-plus-fill"></i></div>
-            <h2 class="text-white mb-1 fw-800" style="font-size:1.5rem;">Create Account</h2>
-            <p class="mb-0" style="color:rgba(255,255,255,0.5);font-size:0.875rem;">Join QueueNova and skip the line</p>
+<div class="auth-page">
+  <div class="auth-bg">
+    <div class="auth-bg-orb orb-1"></div>
+    <div class="auth-bg-orb orb-2"></div>
+    <div class="auth-bg-orb orb-3"></div>
+    <div class="auth-grid"></div>
+    <div class="auth-ring"><div class="auth-ring-dot"></div></div>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-card-inner">
+      <div class="auth-logo-mark"><i class="bi bi-person-plus-fill"></i></div>
+      <h1 class="auth-title">Create account</h1>
+      <p class="auth-subtitle">Join QueueNova — skip the line, not the service</p>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="field-wrap">
+          <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          <div class="field-input-wrap">
+            {{ field }}
+            <i class="bi bi-{% if 'password' in field.html_name %}lock{% else %}person{% endif %} field-icon"></i>
+          </div>
+          {% if field.help_text %}<div class="field-help">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ field.errors.0 }}</div>{% endif %}
         </div>
-        <div class="auth-card-body">
-            <form method="post">
-                {% csrf_token %}
-                {% for field in form %}
-                <div class="mb-3">
-                    <label class="form-label">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}
-                        <div class="form-text" style="font-size:0.78rem;">{{ field.help_text }}</div>
-                    {% endif %}
-                    {% if field.errors %}
-                        <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                <button type="submit" class="btn btn-primary w-100 btn-lg mt-2">
-                    Create Account <i class="bi bi-arrow-right ms-1"></i>
-                </button>
-            </form>
-            <hr class="my-4" style="border-color:var(--border);">
-            <div class="text-center" style="font-size:0.875rem;">
-                <p class="text-muted mb-2">Already have an account? <a href="{% url 'users:login' %}" style="color:var(--accent);font-weight:600;">Sign In</a></p>
-                <p class="mb-0 text-muted">Managing a queue? <a href="{% url 'users:admin_register' %}" style="color:var(--accent);font-weight:600;">Admin Register</a></p>
-            </div>
-        </div>
+        {% endfor %}
+
+        <button type="submit" class="auth-btn">Create My Account &nbsp;<i class="bi bi-arrow-right"></i></button>
+      </form>
+
+      <div class="auth-divider"><span>Already have an account?</span></div>
+      <div class="auth-footer">
+        <p><a href="{% url 'users:login' %}" class="auth-link" style="font-size:0.9rem;">Sign in instead →</a></p>
+        <p>Manage queues? <a href="{% url 'users:admin_register' %}" class="auth-link">Admin register</a></p>
+      </div>
     </div>
+  </div>
 </div>
+<script>
+  document.querySelectorAll('.auth-page input[type=text],.auth-page input[type=email],.auth-page input[type=password]').forEach(el=>{el.className='auth-input';});
+</script>
 {% endblock %}
