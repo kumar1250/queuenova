@@ -3,51 +3,98 @@
 
 {% block extra_css %}
 <style>
-.auth-wrap { min-height:calc(100vh - 72px); display:flex; align-items:center; justify-content:center; padding:2rem 1rem; }
-.auth-card { width:100%; max-width:460px; background:var(--surface); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow-lg); overflow:hidden; }
-.auth-card-header { background:var(--brand); padding:2.5rem 2rem 2rem; text-align:center; }
-.auth-icon-wrap { width:56px;height:56px;background:#f59e0b;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;color:white;margin-bottom:1rem; }
-.auth-card-body { padding:2rem; }
+  @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&display=swap');
+  :root{--ink:#0a0a0f;--glow:#f59e0b;--glow2:#ef4444;--glow3:#7c3aed;--text-hi:#f8f8ff;--text-lo:rgba(248,248,255,0.45);--glass:rgba(255,255,255,0.04);--glass-border:rgba(255,255,255,0.09);}
+  .auth-page{min-height:calc(100vh - 72px);background:var(--ink);display:flex;align-items:center;justify-content:center;padding:2rem 1rem;position:relative;overflow:hidden;}
+  .auth-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+  .auth-bg-orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:0.15;animation:orbFloat 8s ease-in-out infinite;}
+  .orb-1{width:420px;height:420px;background:#b45309;top:-80px;right:-80px;animation-delay:0s;}
+  .orb-2{width:280px;height:280px;background:var(--glow3);bottom:-80px;left:-60px;animation-delay:-3s;}
+  .orb-3{width:180px;height:180px;background:var(--glow2);top:40%;left:10%;animation-delay:-6s;}
+  @keyframes orbFloat{0%,100%{transform:translateY(0)scale(1);}50%{transform:translateY(-25px)scale(1.06);}}
+  /* Hexagon grid pattern */
+  .auth-hex{position:absolute;inset:0;opacity:0.03;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34z' fill='none' stroke='%23fff' stroke-width='1'/%3E%3Cpath d='M28 100L0 84V50l28-16 28 16v34z' fill='none' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E");}
+  .auth-card{position:relative;z-index:10;width:100%;max-width:460px;background:var(--glass);border:1px solid var(--glass-border);border-radius:24px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);overflow:hidden;animation:cardReveal 0.7s cubic-bezier(0.16,1,0.3,1) both;}
+  @keyframes cardReveal{from{opacity:0;transform:translateY(32px)scale(0.97);}to{opacity:1;transform:translateY(0)scale(1);}}
+  .auth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--glow),var(--glow2),transparent);animation:shimmer 4s linear infinite;background-size:200% 100%;}
+  @keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+  .auth-card-inner{padding:2.5rem 2.25rem;}
+  .auth-logo-mark{width:52px;height:52px;background:linear-gradient(135deg,var(--glow),var(--glow2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:white;margin-bottom:1.5rem;box-shadow:0 0 32px rgba(245,158,11,0.4);animation:logoGlow 3s ease-in-out infinite;}
+  @keyframes logoGlow{0%,100%{box-shadow:0 0 24px rgba(245,158,11,0.3);}50%{box-shadow:0 0 48px rgba(245,158,11,0.6);}}
+  .auth-title{font-family:'Clash Display','Syne',sans-serif;font-weight:700;font-size:1.75rem;color:var(--text-hi);margin-bottom:0.3rem;letter-spacing:-0.03em;}
+  .auth-subtitle{color:var(--text-lo);font-size:0.875rem;margin-bottom:1.5rem;}
+  /* Warning notice */
+  .admin-notice{display:flex;align-items:center;gap:10px;padding:0.85rem 1rem;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;margin-bottom:1.5rem;}
+  .admin-notice i{color:var(--glow);flex-shrink:0;font-size:1rem;}
+  .admin-notice span{font-size:0.8rem;color:rgba(245,158,11,0.8);line-height:1.5;}
+  .field-wrap{margin-bottom:1.1rem;position:relative;}
+  .field-label{display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-lo);margin-bottom:0.5rem;transition:color 0.2s;}
+  .field-input-wrap{position:relative;}
+  .field-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.22);font-size:0.9rem;pointer-events:none;transition:color 0.2s;}
+  .auth-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);border-radius:10px;color:var(--text-hi);font-size:0.9rem;padding:0.75rem 0.9rem 0.75rem 2.6rem;outline:none;transition:all 0.25s;-webkit-appearance:none;}
+  .auth-input::placeholder{color:rgba(255,255,255,0.18);}
+  .auth-input:focus{border-color:var(--glow);background:rgba(245,158,11,0.07);box-shadow:0 0 0 3px rgba(245,158,11,0.12);}
+  .field-wrap:focus-within .field-label{color:var(--glow);}
+  .field-wrap:focus-within .field-icon{color:var(--glow);}
+  .field-error{font-size:0.75rem;color:#f87171;margin-top:0.4rem;display:flex;align-items:center;gap:5px;animation:shake 0.4s ease;}
+  .field-help{font-size:0.72rem;color:var(--text-lo);margin-top:0.4rem;}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  .auth-btn{width:100%;background:linear-gradient(135deg,var(--glow),#d97706);border:none;border-radius:10px;color:white;font-size:0.9rem;font-weight:700;letter-spacing:0.03em;padding:0.85rem;cursor:pointer;position:relative;overflow:hidden;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 4px 24px rgba(245,158,11,0.3);margin-top:0.5rem;}
+  .auth-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(245,158,11,0.5);}
+  .auth-btn:active{transform:translateY(0);}
+  .auth-divider{display:flex;align-items:center;gap:12px;margin:1.5rem 0;}
+  .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--glass-border);}
+  .auth-divider span{font-size:0.75rem;color:var(--text-lo);white-space:nowrap;}
+  .auth-footer{text-align:center;}
+  .auth-footer p{font-size:0.82rem;color:var(--text-lo);margin-bottom:0.5rem;}
+  .auth-link{color:var(--glow);text-decoration:none;font-weight:600;transition:opacity 0.2s;}
+  .auth-link:hover{opacity:0.75;color:var(--glow);}
+  .auth-card-inner>*{animation:fadeUp 0.6s cubic-bezier(0.16,1,0.3,1) both;}
+  .auth-card-inner>*:nth-child(1){animation-delay:0.1s}.auth-card-inner>*:nth-child(2){animation-delay:0.15s}.auth-card-inner>*:nth-child(3){animation-delay:0.2s}.auth-card-inner>*:nth-child(4){animation-delay:0.25s}.auth-card-inner>*:nth-child(5){animation-delay:0.3s}.auth-card-inner>*:nth-child(6){animation-delay:0.35s}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+  @media(max-width:480px){.auth-card-inner{padding:2rem 1.5rem;}.auth-title{font-size:1.5rem;}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="auth-wrap">
-    <div class="auth-card animate__animated animate__fadeInUp animate__faster">
-        <div class="auth-card-header">
-            <div class="auth-icon-wrap"><i class="bi bi-shield-lock-fill"></i></div>
-            <h2 class="text-white mb-1 fw-800" style="font-size:1.5rem;">Admin Registration</h2>
-            <p class="mb-0" style="color:rgba(255,255,255,0.5);font-size:0.875rem;">Register to manage organizations &amp; queues</p>
+<div class="auth-page">
+  <div class="auth-bg">
+    <div class="auth-bg-orb orb-1"></div>
+    <div class="auth-bg-orb orb-2"></div>
+    <div class="auth-bg-orb orb-3"></div>
+    <div class="auth-hex"></div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-card-inner">
+      <div class="auth-logo-mark"><i class="bi bi-shield-lock-fill"></i></div>
+      <h1 class="auth-title">Admin Register</h1>
+      <p class="auth-subtitle">Register to manage organizations &amp; queues</p>
+      <div class="admin-notice">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>Admin accounts have elevated permissions. Only register if you're authorized to manage this system.</span>
+      </div>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="field-wrap">
+          <label class="field-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          <div class="field-input-wrap">
+            {{ field }}
+            <i class="bi bi-{% if 'password' in field.html_name %}lock{% else %}shield{% endif %} field-icon"></i>
+          </div>
+          {% if field.help_text %}<div class="field-help">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}<div class="field-error"><i class="bi bi-exclamation-circle"></i>{{ field.errors.0 }}</div>{% endif %}
         </div>
-        <div class="auth-card-body">
-            <div class="alert alert-warning d-flex align-items-center gap-2 mb-4" style="font-size:0.825rem;">
-                <i class="bi bi-shield-exclamation flex-shrink-0"></i>
-                <span>Admin accounts have elevated permissions. Use responsibly.</span>
-            </div>
-            <form method="post">
-                {% csrf_token %}
-                {% for field in form %}
-                <div class="mb-3">
-                    <label class="form-label">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}
-                        <div class="form-text" style="font-size:0.78rem;">{{ field.help_text }}</div>
-                    {% endif %}
-                    {% if field.errors %}
-                        <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors.0 }}</div>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                <button type="submit" class="btn btn-warning w-100 btn-lg text-dark fw-600 mt-2">
-                    Create Admin Account <i class="bi bi-arrow-right ms-1"></i>
-                </button>
-            </form>
-            <hr class="my-4" style="border-color:var(--border);">
-            <div class="text-center" style="font-size:0.875rem;">
-                <p class="text-muted mb-2">Already have an account? <a href="{% url 'users:login' %}" style="color:var(--accent);font-weight:600;">Sign In</a></p>
-                <p class="mb-0 text-muted">Regular user? <a href="{% url 'users:register' %}" style="color:var(--accent);font-weight:600;">Register here</a></p>
-            </div>
-        </div>
+        {% endfor %}
+        <button type="submit" class="auth-btn">Create Admin Account &nbsp;<i class="bi bi-arrow-right"></i></button>
+      </form>
+      <div class="auth-divider"><span>Already have an account?</span></div>
+      <div class="auth-footer">
+        <p><a href="{% url 'users:login' %}" class="auth-link" style="font-size:0.9rem;">Sign in instead →</a></p>
+        <p>Regular user? <a href="{% url 'users:register' %}" class="auth-link">Register here</a></p>
+      </div>
     </div>
+  </div>
 </div>
+<script>document.querySelectorAll('.auth-page input[type=text],.auth-page input[type=email],.auth-page input[type=password]').forEach(el=>{el.className='auth-input';});</script>
 {% endblock %}
