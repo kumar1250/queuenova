@@ -1,118 +1,118 @@
 {% extends 'base.html' %}
-
 {% block title %}{% if object %}Edit{% else %}Add{% endif %} Organization{% endblock %}
 
 {% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'custom_admin:manage_organizations' %}" class="btn btn-sm btn-outline-secondary border-0 p-2">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <h1 class="fw-800 mb-0" style="font-size:1.4rem;">
+        {% if object %}Edit: {{ object.name }}{% else %}Add Organization{% endif %}
+    </h1>
+</div>
+
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow border-0">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0 text-primary">
-                    <i class="bi bi-building me-2"></i>
-                    {% if object %}Edit Organization: {{ object.name }}{% else %}Add New Organization{% endif %}
-                </h5>
+<div class="col-lg-8">
+<div class="card border-0 shadow">
+    <div class="card-body p-4 p-lg-5">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <label class="form-label">Organization Name</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Address</label>
+                    {{ form.address }}
+                    {% if form.address.errors %}<div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Contact Number</label>
+                    {{ form.contact_number }}
+                    {% if form.contact_number.errors %}<div class="text-danger small mt-1">{{ form.contact_number.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phone</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}<div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>{% endif %}
+                </div>
             </div>
-            <div class="card-body p-4">
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Organization Name</label>
-                        {{ form.name }}
-                        {% if form.name.errors %}<div class="text-danger mt-1 small">{{ form.name.errors }}</div>{% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Description</label>
-                        {{ form.description }}
-                        {% if form.description.errors %}<div class="text-danger mt-1 small">{{ form.description.errors }}</div>{% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Address</label>
-                        {{ form.address }}
-                        {% if form.address.errors %}<div class="text-danger mt-1 small">{{ form.address.errors }}</div>{% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Contact Number</label>
-                        {{ form.contact_number }}
-                        {% if form.contact_number.errors %}<div class="text-danger mt-1 small">{{ form.contact_number.errors }}</div>{% endif %}
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Email</label>
-                            {{ form.email }}
-                            {% if form.email.errors %}<div class="text-danger mt-1 small">{{ form.email.errors }}</div>{% endif %}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-bold">Phone</label>
-                            {{ form.phone }}
-                            {% if form.phone.errors %}<div class="text-danger mt-1 small">{{ form.phone.errors }}</div>{% endif %}
-                        </div>
-                    </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-4">
-                            <label class="form-label fw-bold text-info">UPI ID / VPA</label>
-                            {{ form.upi_id }}
-                            {% if form.upi_id.errors %}<div class="text-danger mt-1 small">{{ form.upi_id.errors }}</div>{% endif %}
-                            <small class="text-muted d-block mt-1">Direct payment ID (e.g. name@bank)</small>
+            <!-- UPI Section -->
+            <div class="p-4 rounded-3 mb-4" style="background:var(--surface-2);border:1px solid var(--border);">
+                <h6 class="fw-800 mb-3" style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">
+                    <i class="bi bi-qr-code-scan me-2 text-primary"></i>UPI Payment Details
+                </h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">UPI ID / VPA</label>
+                        {{ form.upi_id }}
+                        <div class="form-text">e.g. name@bankname</div>
+                        {% if form.upi_id.errors %}<div class="text-danger small mt-1">{{ form.upi_id.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">UPI QR Code Image</label>
+                        {% if object.upi_qr_code_data %}
+                        <div class="mb-2 p-3 rounded-3 text-center" style="background:white;border:1px solid var(--border);">
+                            <img src="{{ object.upi_qr_code_data }}" class="img-fluid rounded" style="max-height:120px;" alt="Current QR">
+                            <div class="text-success mt-1" style="font-size:0.75rem;"><i class="bi bi-check-circle me-1"></i>Saved in database</div>
                         </div>
-                        <div class="col-md-6 mb-4">
-                            <label class="form-label fw-bold text-info">UPI QR Code</label>
-
-                            <!-- Show current QR image if one is saved -->
-                            {% if object.upi_qr_code_data %}
-                            <div class="mb-2 p-2 border rounded-3 text-center bg-light">
-                                <p class="small text-muted mb-1">Current QR Code:</p>
-                                <img src="{{ object.upi_qr_code_data }}"
-                                     alt="Current UPI QR Code"
-                                     class="img-fluid rounded"
-                                     style="max-height: 150px;">
-                                <p class="small text-success mt-1 mb-0">
-                                    <i class="bi bi-check-circle me-1"></i>Saved in database (survives restarts)
-                                </p>
-                            </div>
-                            {% endif %}
-
-                            {{ form.upi_qr_image }}
-                            {% if form.upi_qr_image.errors %}<div class="text-danger mt-1 small">{{ form.upi_qr_image.errors }}</div>{% endif %}
-                            <small class="text-muted d-block mt-1">
-                                Upload new QR image to replace existing one.
-                                Stored in database — no files lost on restart.
-                            </small>
-                        </div>
+                        {% endif %}
+                        {{ form.upi_qr_image }}
+                        <div class="form-text">Upload new QR to replace existing. Stored in database — persists on Render.</div>
+                        {% if form.upi_qr_image.errors %}<div class="text-danger small mt-1">{{ form.upi_qr_image.errors.0 }}</div>{% endif %}
                     </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-primary">Razorpay Account ID (Linked Bank Account)</label>
-                        {{ form.razorpay_account_id }}
-                        {% if form.razorpay_account_id.errors %}<div class="text-danger mt-1 small">{{ form.razorpay_account_id.errors }}</div>{% endif %}
-                        <small class="text-muted d-block mt-1">Used for Razorpay Route transfers to send money to your bank.</small>
-                    </div>
-
-                    <div class="mb-4">
-                        <div class="form-check form-switch p-3 bg-light rounded-3 border">
-                            {{ form.is_offline_payment_available }}
-                            <label class="form-check-label fw-bold ms-2">Enable Offline Payment Availability</label>
-                            <div class="text-muted small ms-5 mt-1">If enabled, services under this organization can allow offline payments.</div>
-                        </div>
-                        {% if form.is_offline_payment_available.errors %}<div class="text-danger mt-1 small">{{ form.is_offline_payment_available.errors }}</div>{% endif %}
-                    </div>
-                    
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="bi bi-check-lg me-2"></i>Save Organization
-                        </button>
-                        <a href="{% url 'custom_admin:manage_organizations' %}" class="btn btn-outline-secondary px-4">
-                            Cancel
-                        </a>
-                    </div>
-                </form>
+                </div>
             </div>
-        </div>
+
+            <!-- Razorpay Section -->
+            <div class="p-4 rounded-3 mb-4" style="background:var(--surface-2);border:1px solid var(--border);">
+                <h6 class="fw-800 mb-3" style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">
+                    <i class="bi bi-credit-card me-2 text-primary"></i>Razorpay Settings
+                </h6>
+                <div>
+                    <label class="form-label">Razorpay Account ID</label>
+                    {{ form.razorpay_account_id }}
+                    <div class="form-text">Used for Razorpay Route transfers to your linked bank account.</div>
+                    {% if form.razorpay_account_id.errors %}<div class="text-danger small mt-1">{{ form.razorpay_account_id.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <!-- Settings toggles -->
+            <div class="p-4 rounded-3 mb-4" style="background:var(--surface-2);border:1px solid var(--border);">
+                <h6 class="fw-800 mb-3" style="font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">Settings</h6>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch mb-0">
+                        {{ form.is_offline_payment_available }}
+                        <label class="form-check-label fw-600">Enable Offline Payments</label>
+                    </div>
+                </div>
+                <div class="form-text mt-1">When enabled, services under this organization can accept offline (cash) payments.</div>
+                {% if form.is_offline_payment_available.errors %}<div class="text-danger small mt-1">{{ form.is_offline_payment_available.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="d-flex gap-3">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-check2 me-2"></i>Save Organization
+                </button>
+                <a href="{% url 'custom_admin:manage_organizations' %}" class="btn btn-outline-secondary px-4">Cancel</a>
+            </div>
+        </form>
     </div>
+</div>
+</div>
 </div>
 {% endblock %}
