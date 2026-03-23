@@ -1,71 +1,121 @@
 {% extends 'base.html' %}
+{% block title %}Token #{{ token.token_number }}{% endblock %}
 
-{% block title %}Token Details - {{ token.token_number }}{% endblock %}
+{% block extra_css %}
+<style>
+.token-wrap { max-width: 480px; margin: 0 auto; }
+.token-card { border-radius: 24px; overflow: hidden; box-shadow: var(--shadow-lg); border: none; }
+.token-card-top { background: var(--brand); padding: 2.5rem 2rem 2rem; text-align: center; position: relative; overflow: hidden; }
+.token-card-top::before { content:''; position:absolute; top:-50px; right:-50px; width:180px; height:180px; background:var(--accent); opacity:0.1; border-radius:50%; }
+.big-token-num { font-family:'Syne',sans-serif; font-weight:900; font-size:5.5rem; line-height:1; color:white; letter-spacing:-3px; }
+.token-card-body { padding: 2rem; }
+.queue-stat-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 1.2rem; text-align: center; }
+.queue-stat-val { font-family:'Syne',sans-serif; font-weight:800; font-size:1.8rem; line-height:1; }
+.queue-stat-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); font-weight:600; margin-top:4px; }
+.status-banner { border-radius: 12px; padding: 1rem 1.25rem; font-weight: 600; font-size: 0.875rem; }
+.dashed-sep { border: none; border-top: 2px dashed var(--border); margin: 1.5rem 0; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center animate__animated animate__fadeIn">
-    <div class="col-md-6 text-center">
-        <div class="card p-5 mb-4 shadow-lg border-0 animate__animated animate__zoomIn">
-            <h2 class="mb-4 text-gradient fw-bold">Token Confirmed!</h2>
-            <div class="token-badge-container mb-3">
-                <h3 class="display-1 text-primary mb-0 fw-bold animate__animated animate__pulse animate__infinite">#{{ token.token_number }}</h3>
-            </div>
-            <p class="lead mb-4 text-muted fw-semibold">{{ token.service.name }}</p>
-            
+<div class="container">
+<div class="token-wrap animate__animated animate__fadeIn">
+
+    <a href="{% url 'tokens:my_tokens' %}" class="btn btn-sm btn-outline-secondary border-0 mb-3 px-3">
+        <i class="bi bi-arrow-left me-1"></i> My Tokens
+    </a>
+
+    <div class="token-card card">
+        <!-- Top section -->
+        <div class="token-card-top">
+            <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.15em;color:rgba(255,255,255,0.4);margin-bottom:0.5rem;">Token Number</div>
+            <div class="big-token-num animate__animated animate__pulse animate__infinite">#{{ token.token_number }}</div>
+            <div class="mt-3" style="color:rgba(255,255,255,0.65);font-size:0.875rem;">{{ token.service.name }}</div>
+            <div style="color:rgba(255,255,255,0.4);font-size:0.78rem;"><i class="bi bi-building me-1"></i>{{ token.service.organization.name }}</div>
+
             {% if token.qr_code %}
-                <div class="mb-4 p-3 bg-light rounded d-inline-block">
-                    <img src="{{ token.qr_code.url }}" alt="Token QR Code" class="img-fluid" style="max-width: 180px;">
-                    <p class="small text-muted mt-2 mb-0"><i class="bi bi-qr-code me-1"></i>Scan at Counter</p>
-                </div>
+            <div class="mt-4 d-inline-block p-3 rounded-3" style="background:white;">
+                <img src="{{ token.qr_code.url }}" alt="QR Code" style="width:120px;height:120px;display:block;">
+            </div>
+            <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:0.5rem;"><i class="bi bi-qr-code me-1"></i>Scan at counter</div>
             {% endif %}
-            
-            <hr>
-            
+        </div>
+
+        <!-- Body -->
+        <div class="token-card-body">
+
+            <!-- Status banner -->
             {% if token.status == 'waiting' or token.status == 'near' %}
-                <div class="alert alert-info py-4 mb-4">
-                    <h4 class="mb-3">Estimated Queue Status</h4>
-                    <div class="row">
-                        <div class="col-6 border-end">
-                            <p class="text-muted small mb-1">Queue Position</p>
-                            <h5 class="fw-bold">{{ current_position }}</h5>
-                        </div>
-                        <div class="col-6">
-                            <p class="text-muted small mb-1">Wait Time</p>
-                            <h5 class="fw-bold text-primary">{{ estimated_wait }} min</h5>
-                        </div>
-                    </div>
-                    <hr>
-                    <p class="mb-0 text-muted">{{ people_ahead }} people ahead of you</p>
-                </div>
+            <div class="status-banner mb-4" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;">
+                <i class="bi bi-hourglass-split me-2"></i>
+                {% if token.status == 'near' %}You're almost up! Get ready.{% else %}You're in the queue. Sit back and relax.{% endif %}
+            </div>
+            {% elif token.status == 'serving' %}
+            <div class="status-banner mb-4" style="background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;">
+                <i class="bi bi-play-circle-fill me-2"></i>It's your turn! Please proceed to the counter.
+            </div>
+            {% elif token.status == 'completed' %}
+            <div class="status-banner mb-4" style="background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;">
+                <i class="bi bi-check-circle-fill me-2"></i>Service completed. Thank you for using QueueNova!
+            </div>
             {% else %}
-                <div class="alert alert-success py-4 mb-4">
-                    <h4 class="mb-3">Token Status</h4>
-                    <p class="display-6 text-capitalize">{{ token.status }}</p>
-                </div>
+            <div class="status-banner mb-4" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;">
+                <i class="bi bi-x-circle-fill me-2"></i>This token has been cancelled.
+            </div>
             {% endif %}
-            
+
+            <!-- Queue stats -->
+            {% if token.status == 'waiting' or token.status == 'near' %}
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <div class="queue-stat-box">
+                        <div class="queue-stat-val" style="color:var(--accent);">{{ current_position }}</div>
+                        <div class="queue-stat-label">Position</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="queue-stat-box">
+                        <div class="queue-stat-val" style="color:var(--info);">~{{ estimated_wait }}<span style="font-size:1rem;">m</span></div>
+                        <div class="queue-stat-label">Est. Wait</div>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center text-muted mb-4" style="font-size:0.825rem;">
+                <i class="bi bi-people me-1"></i>{{ people_ahead }} {{ people_ahead|pluralize:"person,people" }} ahead of you
+            </p>
+            {% endif %}
+
+            <hr class="dashed-sep">
+
+            <!-- Actions -->
             <div class="d-grid gap-2">
-                <a href="{% url 'tokens:notification_list' token.id %}" class="btn btn-warning btn-lg position-relative">
-                    <i class="bi bi-bell me-2"></i>Notifications
-                    {% with unread_count=token.notifications.filter.is_read|default:0 %}
-                        <!-- We don't have a simple way to count unread here without complex template tags, 
-                             so we just show the button -->
-                    {% endwith %}
+                <a href="{% url 'tokens:notification_list' token.id %}" class="btn btn-outline-primary">
+                    <i class="bi bi-bell me-2"></i>View Notifications
                 </a>
-                <a href="/" class="btn btn-primary btn-lg"><i class="bi bi-house me-2"></i>Home</a>
-                
-                {% if token.status == 'waiting' %}
-                    <form action="{% url 'tokens:cancel_token' token.id %}" method="post" class="mt-2">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Are you sure you want to cancel this token?')">Cancel Token</button>
-                    </form>
-                {% endif %}
-                
-                <button onclick="window.print()" class="btn btn-outline-secondary mt-2">
+                <button onclick="window.print()" class="btn btn-outline-secondary">
                     <i class="bi bi-printer me-2"></i>Print Token
                 </button>
+                {% if token.status == 'waiting' %}
+                <form action="{% url 'tokens:cancel_token' token.id %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger w-100"
+                            onclick="return confirm('Cancel this token? This cannot be undone.')">
+                        <i class="bi bi-x-circle me-2"></i>Cancel Token
+                    </button>
+                </form>
+                {% endif %}
+                <a href="/" class="btn btn-primary">
+                    <i class="bi bi-house me-2"></i>Back to Home
+                </a>
+            </div>
+
+            <div class="text-center mt-3">
+                <span class="text-muted" style="font-size:0.75rem;">
+                    <i class="bi bi-clock-history me-1"></i>Issued {{ token.created_at|date:"d M Y, H:i" }}
+                </span>
             </div>
         </div>
     </div>
+</div>
 </div>
 {% endblock %}
