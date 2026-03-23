@@ -1,196 +1,160 @@
 {% extends 'base.html' %}
-
-{% block title %}Queue Admin Dashboard{% endblock %}
+{% block title %}Live Queue Management{% endblock %}
 
 {% block extra_css %}
 <style>
-    .status-badge {
-        width: 100px;
-        text-align: center;
-        padding: 8px;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-    }
-    .token-number {
-        font-size: 1.2rem;
-        font-weight: 800;
-        color: #0d6efd;
-    }
-    .action-btn {
-        transition: all 0.2s;
-        border-radius: 8px;
-    }
-    .action-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .live-indicator {
-        width: 10px;
-        height: 10px;
-        background-color: #dc3545;
-        border-radius: 50%;
-        display: inline-block;
-        margin-right: 5px;
-        animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
-    }
+.live-dot { width:10px; height:10px; background:var(--danger); border-radius:50%; display:inline-block; animation: livepulse 1.5s infinite; }
+@keyframes livepulse { 0%{box-shadow:0 0 0 0 rgba(239,68,68,0.6)} 70%{box-shadow:0 0 0 8px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)} }
+.token-num { font-family:'Syne',sans-serif; font-weight:800; font-size:1.1rem; color:var(--accent); }
+.action-form-btn { transition: transform 0.15s; }
+.action-form-btn:hover { transform: translateY(-1px); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row mb-4 align-items-center">
-    <div class="col">
-        <h1 class="h2 mb-0 fw-bold text-dark"><span class="live-indicator"></span>LIVE QUEUE MANAGEMENT</h1>
-        <p class="text-muted">Real-time control for service operators</p>
+<!-- Page header -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="fw-800 mb-1 d-flex align-items-center gap-2" style="font-size:1.5rem;">
+            <span class="live-dot"></span> Live Queue Management
+        </h1>
+        <p class="text-muted mb-0" style="font-size:0.85rem;">Real-time control panel for service operators</p>
     </div>
-    <div class="col-auto">
-        <div class="btn-group">
-            <a href="{% url 'tokens:queue_display' %}" target="_blank" class="btn btn-outline-dark">
-                <i class="bi bi-display me-2"></i>Open Public Display
-            </a>
-            <button onclick="location.reload()" class="btn btn-primary">
-                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
-            </button>
-        </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'tokens:queue_display' %}" target="_blank" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-display me-1"></i>Public Display
+        </a>
+        <button onclick="location.reload()" class="btn btn-primary btn-sm">
+            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
     </div>
 </div>
 
-<div class="card mb-4 border-0 shadow-sm overflow-hidden">
-    <div class="card-body bg-light p-4">
+<!-- Filters -->
+<div class="card border-0 shadow mb-4">
+    <div class="card-body p-4" style="background:var(--surface-2);border-radius:20px;">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label for="date" class="form-label small fw-bold text-uppercase text-muted">Filter Date</label>
-                <input type="date" name="date" id="date" class="form-control border-0 shadow-sm" value="{{ selected_date|date:'Y-m-d' }}">
+                <label class="form-label" style="font-size:0.78rem;">Filter by Date</label>
+                <input type="date" name="date" class="form-control" value="{{ selected_date|date:'Y-m-d' }}">
             </div>
             <div class="col-md-5">
-                <label for="service_id" class="form-label small fw-bold text-uppercase text-muted">Service Category</label>
-                <select name="service_id" id="service_id" class="form-select border-0 shadow-sm">
+                <label class="form-label" style="font-size:0.78rem;">Service</label>
+                <select name="service_id" class="form-select">
                     <option value="">All Active Services</option>
                     {% for service in services %}
-                        <option value="{{ service.id }}" {% if selected_service_id == service.id %}selected{% endif %}>
-                            {{ service.organization.name }} - {{ service.name }}
-                        </option>
+                    <option value="{{ service.id }}" {% if selected_service_id == service.id %}selected{% endif %}>
+                        {{ service.organization.name }} — {{ service.name }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-md-4 d-flex gap-2">
-                <button type="submit" class="btn btn-dark px-4 flex-grow-1">Apply Filters</button>
+                <button type="submit" class="btn btn-primary flex-grow-1">Apply Filters</button>
                 <a href="{% url 'tokens:queue_dashboard' %}" class="btn btn-outline-secondary px-3">Reset</a>
             </div>
         </form>
     </div>
 </div>
 
-<div class="card border-0 shadow-sm">
+<!-- Tokens table -->
+<div class="card border-0 shadow">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="bg-dark text-white">
+        <table class="table mb-0">
+            <thead>
                 <tr>
-                    <th class="py-3 px-4">TOKEN</th>
-                    <th class="py-3">SERVICE / USER</th>
-                    <th class="py-3">STATUS</th>
-                    <th class="py-3">POSITION / WAIT</th>
-                    <th class="py-3">FORM DATA</th>
-                    <th class="py-3 text-center">ACTION WORKFLOW</th>
+                    <th>Token</th>
+                    <th>Service / User</th>
+                    <th>Status</th>
+                    <th>Position / Wait</th>
+                    <th>Details</th>
+                    <th class="text-center">Actions</th>
                 </tr>
             </thead>
-            <tbody class="border-top-0">
+            <tbody>
                 {% for token in tokens %}
                 <tr>
-                    <td class="px-4">
-                        <div class="token-number">#{{ token.token_number }}</div>
-                        <small class="text-muted">{{ token.created_at|time:"H:i" }}</small>
+                    <td>
+                        <div class="token-num">#{{ token.token_number }}</div>
+                        <div class="text-muted" style="font-size:0.75rem;">{{ token.created_at|time:"H:i" }}</div>
                     </td>
                     <td>
-                        <div class="fw-bold">{{ token.service.name }}</div>
-                        <div class="small text-muted">{{ token.user.full_name|default:token.user.email }}</div>
+                        <div class="fw-600" style="font-size:0.875rem;">{{ token.service.name }}</div>
+                        <div class="text-muted" style="font-size:0.78rem;">{{ token.user.full_name|default:token.user.email }}</div>
                     </td>
                     <td>
-                        <span class="status-badge badge rounded-pill 
-                            {% if token.status == 'waiting' %}bg-warning text-dark
-                            {% elif token.status == 'near' %}bg-primary
-                            {% elif token.status == 'serving' %}bg-success
-                            {% elif token.status == 'completed' %}bg-secondary
-                            {% else %}bg-danger{% endif %}">
-                            {{ token.status }}
+                        <span class="status-chip
+                            {% if token.status == 'waiting' %}badge-waiting
+                            {% elif token.status == 'near' %}badge-near
+                            {% elif token.status == 'serving' %}badge-serving
+                            {% elif token.status == 'completed' %}badge-completed
+                            {% else %}badge-cancelled{% endif %}">
+                            {{ token.status|capfirst }}
                         </span>
                     </td>
                     <td>
                         {% if token.people_ahead is not None %}
-                            <div class="fw-bold">Pos: {{ token.people_ahead|add:1 }}</div>
-                            <div class="small text-primary">~{{ token.estimated_wait }} min</div>
+                            <div class="fw-700" style="font-size:0.875rem;">#{{ token.people_ahead|add:1 }}</div>
+                            <div style="font-size:0.78rem;color:var(--info);">~{{ token.estimated_wait }} min</div>
                         {% else %}
-                            <span class="text-muted small">N/A</span>
+                            <span class="text-muted">—</span>
                         {% endif %}
                     </td>
                     <td>
-                        <button type="button" class="btn btn-sm btn-light border" data-bs-toggle="modal" data-bs-target="#formDataModal{{ token.id }}">
-                            <i class="bi bi-info-circle me-1"></i> Details
+                        <button type="button" class="btn btn-sm btn-outline-secondary border-0 px-3"
+                                data-bs-toggle="modal" data-bs-target="#modal{{ token.id }}">
+                            <i class="bi bi-eye me-1"></i>View
                         </button>
-                        
+
                         <!-- Modal -->
-                        <div class="modal fade" id="formDataModal{{ token.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal fade" id="modal{{ token.id }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content border-0 shadow-lg">
-                                    <div class="modal-header bg-light">
-                                        <h5 class="modal-title fw-bold">Token Info #{{ token.token_number }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <div class="modal-content border-0 shadow" style="border-radius:20px;">
+                                    <div class="modal-header border-0 pb-0 px-4 pt-4">
+                                        <h5 class="modal-title fw-800">Token #{{ token.token_number }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
-                                    <div class="modal-body p-4">
-                                        <div class="mb-4">
-                                            <div class="small text-muted text-uppercase fw-bold mb-1">Service Requested</div>
-                                            <div class="h5">{{ token.service.name }}</div>
+                                    <div class="modal-body px-4 pb-4">
+                                        <div class="mb-3 p-3 rounded-3" style="background:var(--surface-2);">
+                                            <div class="text-muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Service</div>
+                                            <div class="fw-700">{{ token.service.name }}</div>
                                         </div>
-                                        <div class="list-group list-group-flush border-top">
-                                            {% for data in token.form_data.all %}
-                                                <div class="list-group-item px-0 py-3">
-                                                    <div class="fw-bold text-muted small text-uppercase mb-1">{{ data.field_label }}</div>
-                                                    <div class="text-dark">{{ data.field_value|linebreaksbr }}</div>
-                                                </div>
-                                            {% empty %}
-                                                <p class="text-muted text-center py-4">No additional details.</p>
-                                            {% endfor %}
+                                        {% for data in token.form_data.all %}
+                                        <div class="p-3 rounded-3 mb-2" style="background:var(--surface-2);">
+                                            <div class="text-muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">{{ data.field_label }}</div>
+                                            <div class="fw-500" style="font-size:0.875rem;">{{ data.field_value|linebreaksbr }}</div>
                                         </div>
+                                        {% empty %}
+                                        <p class="text-muted text-center py-2 small">No additional details.</p>
+                                        {% endfor %}
                                     </div>
-                                    <div class="modal-footer bg-light border-top-0">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        <a href="{% url 'tokens:export_token_data' token.id %}" class="btn btn-outline-success">
-                                            <i class="bi bi-download me-2"></i>Download CSV
-                                        </a>
-                                        <button type="button" class="btn btn-primary" onclick="window.print()">
-                                            <i class="bi bi-printer me-2"></i>Print Slip
-                                        </button>
+                                    <div class="modal-footer border-0 pt-0 px-4 pb-4 gap-2">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                                        <a href="{% url 'tokens:export_token_data' token.id %}" class="btn btn-outline-success btn-sm"><i class="bi bi-download me-1"></i>CSV</a>
+                                        <button class="btn btn-outline-dark btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </td>
                     <td class="text-center">
-                        <div class="btn-group shadow-sm">
+                        <div class="d-flex justify-content-center gap-1 flex-wrap">
                             <form method="post" action="{% url 'tokens:update_token_status' token.id %}" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="status" value="near">
-                                <button type="submit" class="btn btn-sm btn-outline-primary action-btn {% if token.status == 'near' %}active{% endif %}" title="Mark as Near">
-                                    <i class="bi bi-bell"></i> Near
+                                {% csrf_token %}<input type="hidden" name="status" value="near">
+                                <button type="submit" class="btn btn-sm action-form-btn {% if token.status == 'near' %}btn-primary{% else %}btn-outline-primary{% endif %}" title="Near">
+                                    <i class="bi bi-bell"></i>
                                 </button>
                             </form>
                             <form method="post" action="{% url 'tokens:update_token_status' token.id %}" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="status" value="serving">
-                                <button type="submit" class="btn btn-sm btn-outline-success action-btn {% if token.status == 'serving' %}active{% endif %}" title="Start Serving">
-                                    <i class="bi bi-play-fill"></i> Serve
+                                {% csrf_token %}<input type="hidden" name="status" value="serving">
+                                <button type="submit" class="btn btn-sm action-form-btn {% if token.status == 'serving' %}btn-success{% else %}btn-outline-success{% endif %}" title="Serving">
+                                    <i class="bi bi-play-fill"></i>
                                 </button>
                             </form>
                             <form method="post" action="{% url 'tokens:update_token_status' token.id %}" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="status" value="completed">
-                                <button type="submit" class="btn btn-sm btn-outline-secondary action-btn" title="Complete">
-                                    <i class="bi bi-check-all"></i> Done
+                                {% csrf_token %}<input type="hidden" name="status" value="completed">
+                                <button type="submit" class="btn btn-sm action-form-btn btn-outline-secondary" title="Done">
+                                    <i class="bi bi-check2-all"></i>
                                 </button>
                             </form>
                         </div>
@@ -198,10 +162,12 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center py-5">
-                        <div class="text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                            <p>No tokens issued for the selected criteria.</p>
+                    <td colspan="6">
+                        <div class="text-center py-5">
+                            <div style="width:60px;height:60px;background:var(--surface-3);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--text-light);margin-bottom:1rem;">
+                                <i class="bi bi-inbox"></i>
+                            </div>
+                            <p class="text-muted mb-0" style="font-size:0.875rem;">No tokens for the selected criteria.</p>
                         </div>
                     </td>
                 </tr>
@@ -214,14 +180,9 @@
 
 {% block extra_js %}
 <script>
-    // Auto-refresh every 30 seconds if today is selected and no modal is open
-    setInterval(function() {
-        const modals = document.querySelectorAll('.modal.show');
-        const dateInput = document.getElementById('date');
-        const today = new Date().toISOString().split('T')[0];
-        if (modals.length === 0 && (!dateInput || (dateInput.value === today))) {
-            location.reload();
-        }
-    }, 30000);
+// Auto-refresh every 30 seconds when no modal is open
+setInterval(() => {
+    if (!document.querySelector('.modal.show')) location.reload();
+}, 30000);
 </script>
 {% endblock %}
