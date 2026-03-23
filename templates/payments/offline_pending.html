@@ -1,42 +1,36 @@
 {% extends 'base.html' %}
+{% block title %}Payment Submitted — {{ service.name }}{% endblock %}
 
-{% block title %}Payment Pending - {{ service.name }}{% endblock %}
+{% block extra_css %}<style>.pending-wrap{max-width:480px;margin:0 auto;}</style>{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 text-center">
-        <div class="card p-5 shadow-lg border-0 rounded-4">
-            <div class="mb-4">
-                {% if is_upi %}
-                    <i class="bi bi-patch-check text-info" style="font-size: 4rem;"></i>
-                {% else %}
-                    <i class="bi bi-hourglass-split text-warning" style="font-size: 4rem;"></i>
-                {% endif %}
-            </div>
-            
-            {% if is_upi %}
-                <h2 class="mb-4 fw-bold">Payment Info Submitted</h2>
-                <p class="lead">Thank you for the payment! Your <strong>UPI Transaction ID</strong> has been recorded.</p>
-                <div class="alert alert-info py-3 border-0 shadow-sm">
-                    <div class="small text-uppercase fw-bold mb-1">Transaction ID</div>
-                    <div class="h5 mb-0 fw-bold">{{ payment.transaction_id }}</div>
-                </div>
-            {% else %}
-                <h2 class="mb-4 fw-bold">Payment Pending Approval</h2>
-                <p class="lead">Please proceed to the counter to make your payment for <strong>{{ service.name }}</strong>.</p>
-                <div class="alert alert-warning py-3 border-0 shadow-sm">
-                    <strong>Amount:</strong> ₹{{ service.payment_amount }}
-                </div>
-            {% endif %}
+<div class="container">
+<div class="pending-wrap text-center animate__animated animate__zoomIn animate__faster" style="padding-top:2rem;">
 
-            <p class="text-muted mt-3">Once the administrator confirms your payment, your token will be generated automatically and you will receive an email.</p>
-            
-            <div class="mt-4 pt-3">
-                <a href="{% url 'tokens:my_tokens' %}" class="btn btn-primary btn-lg rounded-pill px-5 shadow-sm">
-                    Track My Tokens <i class="bi bi-arrow-right ms-2"></i>
-                </a>
-            </div>
-        </div>
+    <div style="width:80px;height:80px;border-radius:50%;background:{% if is_upi %}#d1fae5{% else %}#fef3c7{% endif %};display:inline-flex;align-items:center;justify-content:center;font-size:2.2rem;color:{% if is_upi %}#065f46{% else %}#92400e{% endif %};margin-bottom:1.5rem;">
+        <i class="bi bi-{% if is_upi %}patch-check-fill{% else %}hourglass-split{% endif %}"></i>
     </div>
+
+    {% if is_upi %}
+    <h2 class="fw-800 mb-2">Payment Info Submitted!</h2>
+    <p class="text-muted mb-4" style="font-size:0.9rem;">Your UPI transaction ID has been recorded. Admin will verify and generate your token.</p>
+    <div class="p-3 rounded-3 mb-4 d-inline-block" style="background:var(--surface-2);border:1px solid var(--border);min-width:260px;">
+        <div class="text-muted" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Transaction ID</div>
+        <div class="fw-800 mt-1" style="font-size:1rem;">{{ payment.transaction_id }}</div>
+    </div>
+    {% else %}
+    <h2 class="fw-800 mb-2">Payment Pending</h2>
+    <p class="text-muted mb-4" style="font-size:0.9rem;">Please visit the counter and pay <strong>₹{{ service.payment_amount }}</strong> for <strong>{{ service.name }}</strong>. Your token will be generated once confirmed.</p>
+    <div class="p-3 rounded-3 mb-4 d-inline-block" style="background:#fef3c7;border:1px solid #fde68a;min-width:260px;">
+        <div class="text-muted" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Amount Due</div>
+        <div class="fw-800 mt-1" style="font-size:1.2rem;">₹{{ service.payment_amount }}</div>
+    </div>
+    {% endif %}
+
+    <p class="text-muted mb-4" style="font-size:0.825rem;">Once payment is confirmed, your token will appear in your history and you'll receive an email.</p>
+    <a href="{% url 'tokens:my_tokens' %}" class="btn btn-primary btn-lg btn-pill px-5">
+        Track My Tokens <i class="bi bi-arrow-right ms-2"></i>
+    </a>
+</div>
 </div>
 {% endblock %}
