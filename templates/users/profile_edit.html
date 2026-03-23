@@ -3,123 +3,211 @@
 
 {% block extra_css %}
 <style>
-.profile-edit-wrap { max-width: 620px; margin: 0 auto; }
-.avatar-edit-wrap { position: relative; display: inline-block; }
-.avatar-preview {
-    width: 100px; height: 100px; border-radius: 50%;
-    object-fit: cover; border: 3px solid var(--border); box-shadow: var(--shadow);
-}
-.avatar-placeholder-edit {
-    width: 100px; height: 100px; border-radius: 50%;
-    background: var(--accent); color: white;
-    font-family: 'Syne',sans-serif; font-size: 2.2rem; font-weight: 800;
-    display: inline-flex; align-items: center; justify-content: center;
-    border: 3px solid var(--border); box-shadow: var(--shadow);
-}
-.avatar-upload-btn {
-    position: absolute; bottom: 2px; right: 2px;
-    width: 30px; height: 30px; border-radius: 50%;
-    background: var(--accent); color: white; border: 2px solid white;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 0.75rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    transition: transform 0.2s;
-}
-.avatar-upload-btn:hover { transform: scale(1.1); }
+  @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&display=swap');
+
+  .edit-wrap { max-width: 680px; margin: 0 auto; }
+  .edit-card { border-radius: 20px; overflow: hidden; border: 1px solid #e4e7f0; box-shadow: 0 8px 40px rgba(0,0,0,0.1); background: white; animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+  /* Header */
+  .edit-header {
+    background:linear-gradient(135deg,#0a0a0f,#1c1c28);
+    padding:1.5rem 2rem;display:flex;align-items:center;gap:1rem;
+  }
+  .edit-header-back {
+    width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.1);color:white;
+    display:flex;align-items:center;justify-content:center;text-decoration:none;
+    transition:all 0.2s;flex-shrink:0;
+  }
+  .edit-header-back:hover{background:rgba(255,255,255,0.15);color:white;}
+  .edit-header-title{font-family:'Clash Display','Syne',sans-serif;font-weight:700;font-size:1.25rem;color:white;letter-spacing:-0.02em;}
+  .edit-header-sub{font-size:0.78rem;color:rgba(255,255,255,0.4);}
+
+  /* Avatar editor */
+  .avatar-editor {
+    padding:2rem;text-align:center;border-bottom:1px solid #f3f4f6;
+    background:linear-gradient(180deg,#fafafa,white);
+  }
+  .avatar-edit-ring {
+    position:relative;display:inline-block;cursor:pointer;
+  }
+  .avatar-edit-ring::after {
+    content:'';position:absolute;inset:-4px;border-radius:50%;
+    border:2px dashed #e94560;opacity:0;
+    animation:none;transition:opacity 0.3s;
+  }
+  .avatar-edit-ring:hover::after { opacity:1; animation: rotateDash 8s linear infinite; }
+  @keyframes rotateDash{to{transform:rotate(360deg);}}
+  .avatar-img-edit {
+    width:90px;height:90px;border-radius:50%;object-fit:cover;
+    border:3px solid white;box-shadow:0 4px 20px rgba(0,0,0,0.12);
+    display:block;transition:filter 0.2s;
+  }
+  .avatar-placeholder-edit {
+    width:90px;height:90px;border-radius:50%;
+    background:linear-gradient(135deg,#e94560,#7c3aed);
+    color:white;font-family:'Clash Display','Syne',sans-serif;
+    font-size:2rem;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    border:3px solid white;box-shadow:0 4px 20px rgba(0,0,0,0.12);
+  }
+  .avatar-edit-ring:hover .avatar-img-edit,
+  .avatar-edit-ring:hover .avatar-placeholder-edit { filter:brightness(0.8); }
+  .avatar-camera-badge {
+    position:absolute;bottom:2px;right:2px;
+    width:30px;height:30px;border-radius:50%;
+    background:#e94560;color:white;font-size:0.8rem;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid white;box-shadow:0 2px 8px rgba(233,69,96,0.4);
+    transition:transform 0.2s;
+  }
+  .avatar-edit-ring:hover .avatar-camera-badge{transform:scale(1.15);}
+  .avatar-hint{font-size:0.75rem;color:#9ca3af;margin-top:0.75rem;}
+
+  /* Form body */
+  .edit-body { padding:2rem; }
+  .field-section { margin-bottom:1.75rem; }
+  .field-section-title {
+    font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;
+    color:#9ca3af;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid #f3f4f6;
+    display:flex;align-items:center;gap:6px;
+  }
+  .field-row { display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem; }
+  .field-full { margin-bottom:1rem; }
+  .edit-label {
+    display:block;font-size:0.75rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:0.07em;color:#6b7280;margin-bottom:0.4rem;
+    transition:color 0.2s;
+  }
+  .field-wrap-edit:focus-within .edit-label{color:#e94560;}
+  .edit-input {
+    width:100%;background:#f9fafb;border:1.5px solid #e5e7eb;
+    border-radius:9px;color:#111827;font-size:0.875rem;
+    padding:0.7rem 0.9rem;outline:none;transition:all 0.2s;
+    -webkit-appearance:none;
+  }
+  .edit-input:focus{border-color:#e94560;background:white;box-shadow:0 0 0 3px rgba(233,69,96,0.08);}
+  .edit-input::placeholder{color:#d1d5db;}
+  .field-error{font-size:0.75rem;color:#ef4444;margin-top:0.35rem;}
+  .field-hint{font-size:0.72rem;color:#9ca3af;margin-top:0.35rem;}
+
+  /* Footer */
+  .edit-footer {
+    padding:1.5rem 2rem;background:#fafafa;border-top:1px solid #f3f4f6;
+    display:flex;justify-content:flex-end;gap:10px;
+  }
+  .btn-cancel{padding:0.65rem 1.5rem;border-radius:9px;border:1.5px solid #e5e7eb;background:white;color:#6b7280;font-size:0.875rem;font-weight:600;text-decoration:none;transition:all 0.2s;display:inline-flex;align-items:center;}
+  .btn-cancel:hover{border-color:#d1d5db;color:#374151;}
+  .btn-save{padding:0.65rem 2rem;border-radius:9px;border:none;background:linear-gradient(135deg,#e94560,#c73652);color:white;font-size:0.875rem;font-weight:700;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 16px rgba(233,69,96,0.3);display:inline-flex;align-items:center;gap:6px;}
+  .btn-save:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(233,69,96,0.4);}
+
+  @media(max-width:540px){
+    .field-row{grid-template-columns:1fr;}
+    .edit-header,.edit-body,.edit-footer{padding-left:1.25rem;padding-right:1.25rem;}
+    .avatar-editor{padding:1.5rem;}
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
-<div class="profile-edit-wrap">
+<div class="edit-wrap">
+  <div class="edit-card">
 
-    <div class="d-flex align-items-center gap-3 mb-4">
-        <a href="{% url 'users:profile' %}" class="btn btn-sm btn-outline-secondary border-0 p-2">
-            <i class="bi bi-arrow-left"></i>
-        </a>
-        <h1 class="mb-0 fw-800" style="font-size:1.4rem;">Edit Profile</h1>
+    <!-- Header -->
+    <div class="edit-header">
+      <a href="{% url 'users:profile' %}" class="edit-header-back"><i class="bi bi-arrow-left"></i></a>
+      <div>
+        <div class="edit-header-title">Edit Profile</div>
+        <div class="edit-header-sub">Update your personal information</div>
+      </div>
     </div>
 
-    <div class="card border-0 shadow animate__animated animate__fadeInUp animate__faster">
-        <div class="card-body p-4">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="file" id="id_profile_picture_file" name="profile_picture_file" accept="image/*" class="d-none">
 
-            <!-- Avatar section -->
-            <div class="text-center mb-4 pb-4" style="border-bottom:1px solid var(--border);">
-                <div class="avatar-edit-wrap">
-                    {% if user.profile_picture %}
-                        <img src="{{ user.profile_picture }}" id="avatar-preview" class="avatar-preview" alt="Profile">
-                    {% else %}
-                        <div id="avatar-placeholder" class="avatar-placeholder-edit">{{ user.email|slice:":1"|upper }}</div>
-                        <img id="avatar-preview" class="avatar-preview d-none" alt="Profile">
-                    {% endif %}
-                    <label for="id_profile_picture_file" class="avatar-upload-btn">
-                        <i class="bi bi-camera-fill"></i>
-                    </label>
-                </div>
-                <p class="text-muted mt-2 mb-0" style="font-size:0.78rem;">JPG, PNG. Max 2MB. Square recommended.</p>
+      <!-- Avatar editor -->
+      <div class="avatar-editor">
+        <label for="id_profile_picture_file" class="avatar-edit-ring">
+          {% if user.profile_picture %}
+            <img src="{{ user.profile_picture }}" id="avatarPreview" class="avatar-img-edit" alt="">
+          {% else %}
+            <div id="avatarPlaceholder" class="avatar-placeholder-edit">{{ user.email|slice:":1"|upper }}</div>
+            <img id="avatarPreview" class="avatar-img-edit d-none" alt="">
+          {% endif %}
+          <span class="avatar-camera-badge"><i class="bi bi-camera-fill"></i></span>
+        </label>
+        <div class="avatar-hint">Click avatar to change photo · JPG, PNG max 2MB</div>
+      </div>
+
+      <!-- Form fields -->
+      <div class="edit-body">
+        <div class="field-section">
+          <div class="field-section-title"><i class="bi bi-person"></i> Basic Info</div>
+          <div class="field-row">
+            <div class="field-wrap-edit">
+              <label class="edit-label" for="{{ form.full_name.id_for_label }}">Full Name</label>
+              {{ form.full_name }}
+              {% if form.full_name.errors %}<div class="field-error">{{ form.full_name.errors.0 }}</div>{% endif %}
             </div>
-
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-
-                <!-- Hidden file input -->
-                <input type="file" id="id_profile_picture_file" name="profile_picture_file"
-                       accept="image/*" class="d-none">
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Full Name</label>
-                        {{ form.full_name }}
-                        {% if form.full_name.errors %}<div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>{% endif %}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Email Address</label>
-                        {{ form.email }}
-                        {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">Phone Number</label>
-                        {{ form.phone_number }}
-                        {% if form.phone_number.errors %}<div class="text-danger small mt-1">{{ form.phone_number.errors.0 }}</div>{% endif %}
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label">Bio <span class="text-muted fw-400">(optional)</span></label>
-                        {{ form.bio }}
-                        <div class="form-text">Short description shown on your profile. Max 500 characters.</div>
-                        {% if form.bio.errors %}<div class="text-danger small mt-1">{{ form.bio.errors.0 }}</div>{% endif %}
-                    </div>
-                </div>
-
-                <div class="d-flex gap-3 justify-content-end mt-4 pt-3" style="border-top:1px solid var(--border);">
-                    <a href="{% url 'users:profile' %}" class="btn btn-outline-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary px-4">
-                        <i class="bi bi-check2 me-1"></i>Save Changes
-                    </button>
-                </div>
-            </form>
+            <div class="field-wrap-edit">
+              <label class="edit-label" for="{{ form.phone_number.id_for_label }}">Phone</label>
+              {{ form.phone_number }}
+              {% if form.phone_number.errors %}<div class="field-error">{{ form.phone_number.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+          <div class="field-full field-wrap-edit">
+            <label class="edit-label" for="{{ form.email.id_for_label }}">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}<div class="field-error">{{ form.email.errors.0 }}</div>{% endif %}
+          </div>
         </div>
-    </div>
+
+        <div class="field-section">
+          <div class="field-section-title"><i class="bi bi-chat-quote"></i> About</div>
+          <div class="field-full field-wrap-edit">
+            <label class="edit-label" for="{{ form.bio.id_for_label }}">Bio <span style="text-transform:none;font-weight:400;color:#d1d5db;">(optional)</span></label>
+            {{ form.bio }}
+            <div class="field-hint">Max 500 characters. Tell others a bit about yourself.</div>
+            {% if form.bio.errors %}<div class="field-error">{{ form.bio.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="edit-footer">
+        <a href="{% url 'users:profile' %}" class="btn-cancel">Cancel</a>
+        <button type="submit" class="btn-save"><i class="bi bi-check2"></i>Save Changes</button>
+      </div>
+    </form>
+  </div>
 </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-const fileInput = document.getElementById('id_profile_picture_file');
-const preview = document.getElementById('avatar-preview');
-const placeholder = document.getElementById('avatar-placeholder');
+  /* Style form inputs */
+  document.querySelectorAll('.edit-input-target, .edit-body input[type=text], .edit-body input[type=email], .edit-body textarea').forEach(el=>{
+    el.classList.add('edit-input');
+  });
+  document.querySelectorAll('.edit-body textarea').forEach(el=>{
+    el.className='edit-input';el.rows=3;
+  });
 
-fileInput?.addEventListener('change', function () {
-    if (this.files && this.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            if (preview) {
-                preview.src = e.target.result;
-                preview.classList.remove('d-none');
-            }
-            if (placeholder) placeholder.style.display = 'none';
-        };
-        reader.readAsDataURL(this.files[0]);
+  /* Avatar preview */
+  const fileInput = document.getElementById('id_profile_picture_file');
+  const preview = document.getElementById('avatarPreview');
+  const placeholder = document.getElementById('avatarPlaceholder');
+  fileInput?.addEventListener('change', function(){
+    if(this.files&&this.files[0]){
+      const r=new FileReader();
+      r.onload=e=>{
+        preview.src=e.target.result;preview.classList.remove('d-none');
+        if(placeholder)placeholder.style.display='none';
+      };r.readAsDataURL(this.files[0]);
     }
-});
+  });
 </script>
 {% endblock %}
