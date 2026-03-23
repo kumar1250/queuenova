@@ -3,112 +3,187 @@
 
 {% block extra_css %}
 <style>
-.profile-wrap { max-width: 700px; margin: 0 auto; }
-.profile-avatar {
-    width: 100px; height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid var(--surface);
-    box-shadow: var(--shadow-lg);
-}
-.avatar-placeholder {
-    width: 100px; height: 100px; border-radius: 50%;
-    background: var(--accent);
-    color: white; font-family: 'Syne', sans-serif;
-    font-size: 2.2rem; font-weight: 800;
-    display: inline-flex; align-items: center; justify-content: center;
-    border: 4px solid var(--surface); box-shadow: var(--shadow-lg);
-}
-.profile-banner {
-    height: 120px;
-    background: linear-gradient(135deg, var(--brand) 0%, #2d2b55 100%);
-    border-radius: 20px 20px 0 0;
-    position: relative;
-}
-.profile-card-body { padding: 0 2rem 2rem; }
-.info-row { display: flex; align-items: center; gap: 10px; padding: 0.75rem 0; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
-.info-row:last-child { border-bottom: none; }
-.info-row .info-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--surface-3); display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-shrink: 0; }
-.info-label { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-.info-value { font-weight: 500; color: var(--text); }
+  @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&display=swap');
+
+  .profile-page { max-width: 680px; margin: 0 auto; }
+
+  /* Hero banner with parallax feel */
+  .profile-banner {
+    height: 160px; border-radius: 20px 20px 0 0; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #0a0a0f 0%, #1c1c28 40%, #2d1b3d 70%, #1a0a1a 100%);
+  }
+  .profile-banner-dots {
+    position:absolute;inset:0;
+    background-image: radial-gradient(circle, rgba(233,69,96,0.3) 1px, transparent 1px);
+    background-size: 24px 24px;
+    animation: dotsShift 8s linear infinite;
+  }
+  @keyframes dotsShift { 0%{background-position:0 0;} 100%{background-position:24px 24px;} }
+  .profile-banner-glow {
+    position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);
+    width:200px;height:200px;border-radius:50%;
+    background:radial-gradient(circle,rgba(124,58,237,0.4),transparent 70%);
+    pointer-events:none;
+  }
+
+  .profile-card { border-radius: 20px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 8px 40px rgba(0,0,0,0.12); background: white; }
+
+  .profile-body { padding: 0 2rem 2rem; }
+
+  /* Avatar */
+  .avatar-row { display:flex;align-items:flex-end;justify-content:space-between;margin-top:-50px;margin-bottom:1.25rem; }
+  .avatar-wrap { position: relative; display: inline-block; }
+  .avatar-img {
+    width:96px;height:96px;border-radius:50%;object-fit:cover;
+    border:4px solid white;box-shadow:0 4px 20px rgba(0,0,0,0.15);
+    display:block;
+  }
+  .avatar-placeholder {
+    width:96px;height:96px;border-radius:50%;
+    background:linear-gradient(135deg,#e94560,#7c3aed);
+    color:white;font-family:'Clash Display','Syne',sans-serif;
+    font-size:2.2rem;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    border:4px solid white;box-shadow:0 4px 20px rgba(0,0,0,0.15);
+  }
+  .avatar-online {
+    position:absolute;bottom:6px;right:6px;
+    width:16px;height:16px;border-radius:50%;background:#10b981;border:2px solid white;
+    animation:ping 2s ease-in-out infinite;
+  }
+  @keyframes ping{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.5);}50%{box-shadow:0 0 0 6px rgba(16,185,129,0);}}
+
+  .profile-name { font-family:'Clash Display','Syne',sans-serif;font-weight:700;font-size:1.5rem;letter-spacing:-0.02em;margin-bottom:0.2rem; }
+  .profile-email { color:#6b7280;font-size:0.875rem;margin-bottom:0.75rem; }
+  .profile-badges { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1.25rem; }
+  .pbadge {
+    display:inline-flex;align-items:center;gap:5px;
+    padding:0.3em 0.75em;border-radius:50px;font-size:0.72rem;font-weight:700;
+    letter-spacing:0.03em;
+  }
+  .pbadge-admin { background:#fef3c7;color:#92400e; }
+  .pbadge-user { background:#dbeafe;color:#1e40af; }
+  .pbadge-verified { background:#d1fae5;color:#065f46; }
+
+  /* Bio */
+  .profile-bio {
+    background:#f7f8fc;border:1px solid #e4e7f0;border-radius:12px;
+    padding:1rem 1.25rem;font-size:0.875rem;color:#4b5563;line-height:1.7;
+    margin-bottom:1.5rem;position:relative;
+  }
+  .profile-bio::before {
+    content:'\201C';position:absolute;top:-12px;left:16px;
+    font-size:2.5rem;color:#e94560;line-height:1;font-family:Georgia,serif;
+  }
+
+  /* Info grid */
+  .info-grid { display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem; }
+  .info-item {
+    background:#f7f8fc;border:1px solid #e4e7f0;border-radius:12px;
+    padding:0.85rem 1rem;
+    transition:all 0.2s;
+  }
+  .info-item:hover { border-color:#e94560;background:#fff0f3; }
+  .info-item-label { font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;margin-bottom:3px; }
+  .info-item-val { font-size:0.875rem;font-weight:600;color:#1a1a2e; }
+
+  /* Action buttons */
+  .profile-actions { display:flex;gap:10px;flex-wrap:wrap; }
+  .profile-actions a { flex:1;min-width:140px;text-align:center;padding:0.75rem;border-radius:10px;font-size:0.875rem;font-weight:600;text-decoration:none;transition:all 0.2s; }
+  .btn-edit { background:linear-gradient(135deg,#e94560,#c73652);color:white;box-shadow:0 4px 16px rgba(233,69,96,0.3); }
+  .btn-edit:hover { transform:translateY(-2px);box-shadow:0 8px 24px rgba(233,69,96,0.4);color:white; }
+  .btn-history { background:#f7f8fc;border:1.5px solid #e4e7f0;color:#374151; }
+  .btn-history:hover { border-color:#e94560;color:#e94560;background:#fff0f3; }
+
+  /* Entrance animations */
+  .profile-card { animation: slideUp 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);} }
+  .info-item { animation: fadeIn 0.5s ease both; }
+  .info-item:nth-child(1){animation-delay:0.2s}.info-item:nth-child(2){animation-delay:0.25s}
+  .info-item:nth-child(3){animation-delay:0.3s}.info-item:nth-child(4){animation-delay:0.35s}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  @media(max-width:480px){
+    .info-grid{grid-template-columns:1fr;}
+    .profile-body{padding:0 1.25rem 1.25rem;}
+    .profile-actions a{min-width:100%;flex:none;}
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
-<div class="profile-wrap">
-    <div class="card border-0 shadow overflow-hidden animate__animated animate__fadeIn">
-        <div class="profile-banner"></div>
-        <div class="profile-card-body">
-            <div class="d-flex align-items-end justify-content-between" style="margin-top:-50px;margin-bottom:1.25rem;">
-                <div class="position-relative">
-                    {% if profile_user.profile_picture %}
-                        <img src="{{ profile_user.profile_picture }}" class="profile-avatar" alt="{{ profile_user.email }}">
-                    {% else %}
-                        <div class="avatar-placeholder">{{ profile_user.full_name|default:profile_user.email|slice:":1"|upper }}</div>
-                    {% endif %}
-                    <a href="{% url 'users:profile_edit' %}" class="position-absolute" style="bottom:2px;right:2px;width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;text-decoration:none;font-size:0.75rem;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-                        <i class="bi bi-pencil-fill"></i>
-                    </a>
-                </div>
-                <div class="d-flex gap-2">
-                    <a href="{% url 'users:profile_edit' %}" class="btn btn-primary btn-sm">
-                        <i class="bi bi-pencil me-1"></i> Edit Profile
-                    </a>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <h2 class="mb-0 fw-800" style="font-size:1.4rem;">{{ profile_user.full_name|default:"No name set" }}</h2>
-                <p class="text-muted mb-2" style="font-size:0.875rem;">{{ profile_user.email }}</p>
-                <div class="d-flex gap-2 flex-wrap">
-                    <span class="badge" style="background:{% if profile_user.is_staff %}#fef3c7;color:#92400e{% else %}#dbeafe;color:#1e40af{% endif %};">
-                        <i class="bi bi-{% if profile_user.is_staff %}shield-fill{% else %}person-fill{% endif %} me-1"></i>
-                        {% if profile_user.is_staff %}Administrator{% else %}Member{% endif %}
-                    </span>
-                    {% if profile_user.is_verified %}
-                    <span class="badge" style="background:#d1fae5;color:#065f46;"><i class="bi bi-patch-check-fill me-1"></i>Verified</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            {% if profile_user.bio %}
-            <div class="p-3 mb-4 rounded-3" style="background:var(--surface-2);border:1px solid var(--border);font-size:0.875rem;color:var(--text-muted);">
-                {{ profile_user.bio }}
-            </div>
-            {% endif %}
-
-            <div class="mb-4">
-                <div class="info-row">
-                    <div class="info-icon"><i class="bi bi-envelope"></i></div>
-                    <div>
-                        <div class="info-label">Email</div>
-                        <div class="info-value">{{ profile_user.email }}</div>
-                    </div>
-                </div>
-                {% if profile_user.phone_number %}
-                <div class="info-row">
-                    <div class="info-icon"><i class="bi bi-telephone"></i></div>
-                    <div>
-                        <div class="info-label">Phone</div>
-                        <div class="info-value">{{ profile_user.phone_number }}</div>
-                    </div>
-                </div>
-                {% endif %}
-                <div class="info-row">
-                    <div class="info-icon"><i class="bi bi-calendar3"></i></div>
-                    <div>
-                        <div class="info-label">Member since</div>
-                        <div class="info-value">{{ profile_user.date_joined|date:"F Y" }}</div>
-                    </div>
-                </div>
-            </div>
-
-            <a href="{% url 'tokens:my_tokens' %}" class="btn btn-outline-primary w-100">
-                <i class="bi bi-clock-history me-2"></i>View Queue History
-            </a>
-        </div>
+<div class="profile-page">
+  <div class="profile-card">
+    <!-- Banner -->
+    <div class="profile-banner">
+      <div class="profile-banner-dots"></div>
+      <div class="profile-banner-glow"></div>
     </div>
+
+    <div class="profile-body">
+      <!-- Avatar row -->
+      <div class="avatar-row">
+        <div class="avatar-wrap">
+          {% if profile_user.profile_picture %}
+            <img src="{{ profile_user.profile_picture }}" class="avatar-img" alt="{{ profile_user.email }}">
+          {% else %}
+            <div class="avatar-placeholder">{{ profile_user.full_name|default:profile_user.email|slice:":1"|upper }}</div>
+          {% endif %}
+          <span class="avatar-online" title="Active"></span>
+        </div>
+        <a href="{% url 'users:profile_edit' %}" class="btn-edit" style="padding:0.55rem 1.25rem;border-radius:10px;font-size:0.825rem;font-weight:600;text-decoration:none;background:linear-gradient(135deg,#e94560,#c73652);color:white;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s;">
+          <i class="bi bi-pencil-fill"></i> Edit Profile
+        </a>
+      </div>
+
+      <!-- Name & badges -->
+      <h2 class="profile-name">{{ profile_user.full_name|default:"No name set" }}</h2>
+      <p class="profile-email"><i class="bi bi-envelope me-1"></i>{{ profile_user.email }}</p>
+      <div class="profile-badges">
+        <span class="pbadge {% if profile_user.is_staff %}pbadge-admin{% else %}pbadge-user{% endif %}">
+          <i class="bi bi-{% if profile_user.is_staff %}shield-fill{% else %}person-fill{% endif %}"></i>
+          {% if profile_user.is_staff %}Administrator{% else %}Member{% endif %}
+        </span>
+        {% if profile_user.is_verified %}
+        <span class="pbadge pbadge-verified"><i class="bi bi-patch-check-fill"></i>Verified</span>
+        {% endif %}
+      </div>
+
+      <!-- Bio -->
+      {% if profile_user.bio %}
+      <div class="profile-bio">{{ profile_user.bio }}</div>
+      {% endif %}
+
+      <!-- Info grid -->
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-item-label"><i class="bi bi-envelope me-1"></i>Email</div>
+          <div class="info-item-val" style="font-size:0.8rem;word-break:break-all;">{{ profile_user.email }}</div>
+        </div>
+        {% if profile_user.phone_number %}
+        <div class="info-item">
+          <div class="info-item-label"><i class="bi bi-telephone me-1"></i>Phone</div>
+          <div class="info-item-val">{{ profile_user.phone_number }}</div>
+        </div>
+        {% endif %}
+        <div class="info-item">
+          <div class="info-item-label"><i class="bi bi-calendar3 me-1"></i>Member Since</div>
+          <div class="info-item-val">{{ profile_user.date_joined|date:"F Y" }}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-label"><i class="bi bi-circle-fill me-1" style="color:#10b981;font-size:0.5rem;vertical-align:middle;"></i>Status</div>
+          <div class="info-item-val" style="color:#10b981;">Active</div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="profile-actions">
+        <a href="{% url 'users:profile_edit' %}" class="btn-edit"><i class="bi bi-person-gear me-2"></i>Edit Profile</a>
+        <a href="{% url 'tokens:my_tokens' %}" class="btn-history"><i class="bi bi-clock-history me-2"></i>Queue History</a>
+      </div>
+    </div>
+  </div>
 </div>
 </div>
 {% endblock %}
