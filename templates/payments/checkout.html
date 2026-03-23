@@ -33,12 +33,16 @@
             </div>
             <div class="align-self-center bg-success" style="height: 2px; width: 60px; margin-top: -20px;"></div>
             <div class="text-center px-4">
-                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">2</div>
+                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
+                    2
+                </div>
                 <div class="small fw-bold text-primary mt-2 text-uppercase">Payment</div>
             </div>
             <div class="align-self-center bg-light" style="height: 2px; width: 60px; margin-top: -20px;"></div>
             <div class="text-center px-4">
-                <div class="rounded-circle bg-light text-muted d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">3</div>
+                <div class="rounded-circle bg-light text-muted d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
+                    3
+                </div>
                 <div class="small fw-bold text-muted mt-2 text-uppercase">Verification</div>
             </div>
         </div>
@@ -59,6 +63,13 @@
                             <p class="mb-0"><strong>Service:</strong> {{ service.name }}</p>
                             <p class="small text-muted mb-3">{{ service.organization.name }}</p>
                             
+                            <!-- Test Mode Button -->
+                            <form action="{% url 'payments:simulate_payment' service.id %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success w-100 rounded-pill shadow-sm">
+                                    <i class="bi bi-play-circle me-2"></i>Test Payment (Skip Real Money)
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -78,7 +89,7 @@
                 <div class="row g-4">
                     <!-- Online Payment -->
                     <div class="col-md-4">
-                        <div class="card payment-card h-100 shadow-sm text-center p-4 {% if not service.is_online_payment_allowed %}opacity-50{% endif %}"
+                        <div class="card payment-card h-100 shadow-sm text-center p-4 {% if not service.is_online_payment_allowed %}opacity-50{% endif %}" 
                              {% if service.is_online_payment_allowed %}onclick="document.getElementById('rzp-button1').click()"{% endif %}>
                             <div class="payment-icon text-primary">
                                 <i class="bi bi-credit-card"></i>
@@ -102,7 +113,9 @@
                                         "name": "{{ request.user.full_name }}",
                                         "email": "{{ request.user.email }}"
                                     },
-                                    "theme": { "color": "#0d6efd" }
+                                    "theme": {
+                                        "color": "#0d6efd"
+                                    }
                                 };
                                 var rzp1 = new Razorpay(options);
                                 document.getElementById('rzp-button1').onclick = function(e){
@@ -125,19 +138,20 @@
                             </div>
                             <h5 class="fw-bold">Direct UPI</h5>
                             <p class="text-muted small mb-4">Pay using any UPI App (GPay, PhonePe, Paytm) via QR/ID.</p>
+                            
                             <button class="btn btn-info text-white rounded-pill px-4 w-100">Pay via UPI</button>
                         </div>
                     </div>
 
                     <!-- Offline Payment -->
                     <div class="col-md-4">
-                        <div class="card payment-card h-100 shadow-sm text-center p-4 {% if not service.is_offline_payment_allowed %}opacity-50{% endif %}"
+                        <div class="card payment-card h-100 shadow-sm text-center p-4 {% if not service.is_offline_payment_allowed %}opacity-50{% endif %}" 
                              {% if service.is_offline_payment_allowed %}onclick="document.getElementById('offline-form').submit()"{% endif %}>
                             <div class="payment-icon text-warning">
                                 <i class="bi bi-cash-stack"></i>
                             </div>
                             <h5 class="fw-bold">Offline Payment</h5>
-                            <p class="text-muted small mb-4">Pay manually at the counter. Token generated after admin approval.</p>
+                            <p class="text-muted small mb-4">Pay manually at the counter. Your token will be generated after approval.</p>
                             
                             {% if service.is_offline_payment_allowed %}
                                 <form id="offline-form" action="{% url 'payments:offline_payment' service.id %}" method="post">
@@ -165,18 +179,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body text-center p-4">
-
-                <!-- QR Code: now read from database (base64), not disk -->
-                {% if service.organization.upi_qr_code_data %}
-                    <img src="{{ service.organization.upi_qr_code_data }}"
-                         alt="UPI QR Code"
-                         class="img-fluid rounded-3 mb-3 shadow-sm"
-                         style="max-height: 250px;">
-                {% else %}
-                    <div class="alert alert-light border mb-3 py-3">
-                        <i class="bi bi-qr-code fs-1 text-muted d-block mb-2"></i>
-                        <small class="text-muted">No QR code uploaded yet.<br>Admin can upload it from the organization settings.</small>
-                    </div>
+                {% if service.organization.upi_qr_code %}
+                    <img src="{{ service.organization.upi_qr_code.url }}" alt="UPI QR Code" class="img-fluid rounded-3 mb-3 shadow-sm" style="max-height: 250px;">
                 {% endif %}
                 
                 <div class="bg-light p-3 rounded-3 mb-4">
@@ -188,10 +192,8 @@
                     {% csrf_token %}
                     <div class="mb-3 text-start">
                         <label for="transaction_id" class="form-label small fw-bold">Transaction ID / UTR Number</label>
-                        <input type="text" class="form-control form-control-lg rounded-3 border-primary"
-                               id="transaction_id" name="transaction_id"
-                               placeholder="Enter 12-digit UTR" required style="border-width: 2px;">
-                        <div class="form-text">Enter the transaction ID after completing payment.</div>
+                        <input type="text" class="form-control form-control-lg rounded-3 border-primary" id="transaction_id" name="transaction_id" placeholder="Enter 12-digit UTR" required style="border-width: 2px;">
+                        <div class="form-text">Please enter the transaction ID after completing the payment.</div>
                     </div>
                     <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill">Submit Payment Info</button>
                 </form>
