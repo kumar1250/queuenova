@@ -1,37 +1,120 @@
 {% extends 'base.html' %}
 {% block title %}Verify OTP{% endblock %}
+
 {% block extra_css %}
 <style>
-.auth-wrap{min-height:calc(100vh - 72px);display:flex;align-items:center;justify-content:center;padding:2rem 1rem;}
-.auth-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;}
-.auth-card-header{background:var(--brand);padding:2.5rem 2rem 2rem;text-align:center;}
-.auth-icon-wrap{width:56px;height:56px;background:var(--success);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;color:white;margin-bottom:1rem;}
-.auth-card-body{padding:2rem;}
-.otp-input{font-size:2rem;font-weight:800;text-align:center;letter-spacing:0.5rem;font-family:'Syne',sans-serif;padding:1rem;}
+  @import url('https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&display=swap');
+  :root{--ink:#0a0a0f;--glow:#10b981;--glow2:#0ea5e9;--text-hi:#f8f8ff;--text-lo:rgba(248,248,255,0.45);--glass:rgba(255,255,255,0.04);--glass-border:rgba(255,255,255,0.09);}
+  .auth-page{min-height:calc(100vh - 72px);background:var(--ink);display:flex;align-items:center;justify-content:center;padding:2rem 1rem;position:relative;overflow:hidden;}
+  .auth-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+  .auth-bg-orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:0.15;animation:orbFloat 9s ease-in-out infinite;}
+  .orb-1{width:380px;height:380px;background:var(--glow);top:-80px;left:-80px;animation-delay:0s;}
+  .orb-2{width:280px;height:280px;background:var(--glow2);bottom:-60px;right:-60px;animation-delay:-4s;}
+  @keyframes orbFloat{0%,100%{transform:translateY(0)scale(1);}50%{transform:translateY(-25px)scale(1.06);}}
+  .auth-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:50px 50px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black,transparent);}
+
+  .auth-card{position:relative;z-index:10;width:100%;max-width:400px;background:var(--glass);border:1px solid var(--glass-border);border-radius:24px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);overflow:hidden;animation:cardReveal 0.7s cubic-bezier(0.16,1,0.3,1) both;}
+  @keyframes cardReveal{from{opacity:0;transform:translateY(32px)scale(0.97);}to{opacity:1;transform:translateY(0)scale(1);}}
+  .auth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--glow),var(--glow2),transparent);animation:shimmer 4s linear infinite;background-size:200% 100%;}
+  @keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+
+  .auth-card-inner{padding:2.5rem 2.25rem;text-align:center;}
+  .auth-logo-mark{width:64px;height:64px;background:linear-gradient(135deg,var(--glow),var(--glow2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:white;margin:0 auto 1.5rem;box-shadow:0 0 40px rgba(16,185,129,0.4);animation:logoGlow 3s ease-in-out infinite;}
+  @keyframes logoGlow{0%,100%{box-shadow:0 0 28px rgba(16,185,129,0.3);}50%{box-shadow:0 0 56px rgba(16,185,129,0.6);}}
+  .auth-title{font-family:'Clash Display','Syne',sans-serif;font-weight:700;font-size:1.6rem;color:var(--text-hi);margin-bottom:0.3rem;letter-spacing:-0.03em;}
+  .auth-subtitle{color:var(--text-lo);font-size:0.85rem;margin-bottom:2rem;line-height:1.6;}
+
+  /* OTP big input */
+  .otp-input-wrap{position:relative;margin-bottom:1.5rem;}
+  .otp-input{
+    width:100%;background:rgba(255,255,255,0.06);
+    border:2px solid rgba(255,255,255,0.1);border-radius:14px;
+    color:var(--text-hi);font-family:'Clash Display','Syne',sans-serif;
+    font-size:2.4rem;font-weight:700;letter-spacing:0.6rem;
+    text-align:center;padding:1rem 1rem 1rem 1.6rem;
+    outline:none;transition:all 0.3s;-webkit-appearance:none;
+    caret-color:var(--glow);
+  }
+  .otp-input::placeholder{color:rgba(255,255,255,0.12);letter-spacing:0.3rem;font-size:1.8rem;}
+  .otp-input:focus{border-color:var(--glow);background:rgba(16,185,129,0.08);box-shadow:0 0 0 4px rgba(16,185,129,0.15);}
+
+  /* Progress bar on focus */
+  .otp-progress{height:3px;background:rgba(255,255,255,0.06);border-radius:3px;margin-top:8px;overflow:hidden;}
+  .otp-progress-bar{height:100%;width:0;background:linear-gradient(90deg,var(--glow),var(--glow2));border-radius:3px;transition:width 0.3s;}
+
+  /* Countdown */
+  .otp-countdown{font-size:0.8rem;color:var(--text-lo);margin-bottom:1.5rem;}
+  .otp-countdown span{color:var(--glow);font-weight:700;}
+
+  .auth-btn{width:100%;background:linear-gradient(135deg,var(--glow),#059669);border:none;border-radius:10px;color:white;font-size:0.9rem;font-weight:700;letter-spacing:0.03em;padding:0.9rem;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 4px 24px rgba(16,185,129,0.3);}
+  .auth-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(16,185,129,0.5);}
+  .auth-btn:active{transform:translateY(0);}
+  .auth-back{display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-lo);text-decoration:none;margin-top:1.25rem;transition:color 0.2s;}
+  .auth-back:hover{color:var(--text-hi);}
+  .auth-card-inner>*{animation:fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both;}
+  .auth-card-inner>*:nth-child(1){animation-delay:0.1s}.auth-card-inner>*:nth-child(2){animation-delay:0.15s}.auth-card-inner>*:nth-child(3){animation-delay:0.2s}.auth-card-inner>*:nth-child(4){animation-delay:0.25s}.auth-card-inner>*:nth-child(5){animation-delay:0.3s}.auth-card-inner>*:nth-child(6){animation-delay:0.35s}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+  @media(max-width:480px){.auth-card-inner{padding:2rem 1.5rem;}.otp-input{font-size:2rem;letter-spacing:0.5rem;}}
 </style>
 {% endblock %}
+
 {% block content %}
-<div class="auth-wrap">
-    <div class="auth-card animate__animated animate__fadeInUp animate__faster">
-        <div class="auth-card-header">
-            <div class="auth-icon-wrap"><i class="bi bi-shield-check-fill"></i></div>
-            <h2 class="text-white mb-1 fw-800" style="font-size:1.5rem;">Verify OTP</h2>
-            <p class="mb-0" style="color:rgba(255,255,255,0.5);font-size:0.875rem;">Enter the 6-digit code sent to your email</p>
+<div class="auth-page">
+  <div class="auth-bg">
+    <div class="auth-bg-orb orb-1"></div>
+    <div class="auth-bg-orb orb-2"></div>
+    <div class="auth-grid"></div>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-card-inner">
+      <div class="auth-logo-mark"><i class="bi bi-shield-check-fill"></i></div>
+      <h1 class="auth-title">Verify OTP</h1>
+      <p class="auth-subtitle">Enter the 6-digit code sent to your email.<br>Check your inbox and spam folder.</p>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="otp-input-wrap">
+          <input type="text" name="otp" id="otpInput" class="otp-input"
+                 placeholder="— — — — — —" maxlength="6" pattern="\d{6}" required
+                 autocomplete="one-time-code" inputmode="numeric" autofocus>
+          <div class="otp-progress"><div class="otp-progress-bar" id="otpBar"></div></div>
         </div>
-        <div class="auth-card-body">
-            <form method="post">
-                {% csrf_token %}
-                <div class="mb-4">
-                    <input type="text" name="otp" id="otp" class="form-control otp-input"
-                           placeholder="— — — — — —" maxlength="6" pattern="\d{6}" required autofocus>
-                    <div class="form-text text-center mt-2" style="font-size:0.8rem;">Check your inbox and spam folder. Valid for 10 minutes.</div>
-                </div>
-                <button type="submit" class="btn btn-primary w-100 btn-lg">Verify Code <i class="bi bi-arrow-right ms-1"></i></button>
-            </form>
-            <div class="text-center mt-4">
-                <a href="{% url 'users:password_reset' %}" class="text-decoration-none" style="color:var(--text-muted);font-size:0.875rem;"><i class="bi bi-arrow-left me-1"></i>Request new code</a>
-            </div>
-        </div>
+
+        <div class="otp-countdown">Code expires in <span id="countdown">10:00</span></div>
+
+        <button type="submit" class="auth-btn" id="verifyBtn">
+          Verify Code &nbsp;<i class="bi bi-arrow-right"></i>
+        </button>
+      </form>
+
+      <a href="{% url 'users:password_reset' %}" class="auth-back">
+        <i class="bi bi-arrow-left"></i> Request a new code
+      </a>
     </div>
+  </div>
 </div>
+
+<script>
+  /* OTP progress bar */
+  const otpInput = document.getElementById('otpInput');
+  const otpBar = document.getElementById('otpBar');
+  otpInput?.addEventListener('input', function(){
+    const pct = (this.value.length / 6) * 100;
+    otpBar.style.width = pct + '%';
+    if(this.value.length===6) this.style.borderColor='#10b981';
+    else this.style.borderColor='';
+  });
+
+  /* Countdown 10 mins */
+  let seconds = 600;
+  const countEl = document.getElementById('countdown');
+  const interval = setInterval(()=>{
+    seconds--;
+    if(seconds<=0){clearInterval(interval);countEl.textContent='Expired';countEl.style.color='#f87171';return;}
+    const m=Math.floor(seconds/60), s=seconds%60;
+    countEl.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+    if(seconds<=60)countEl.style.color='#f87171';
+  },1000);
+</script>
 {% endblock %}
