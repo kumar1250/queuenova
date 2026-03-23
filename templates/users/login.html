@@ -1,41 +1,79 @@
 {% extends 'base.html' %}
+{% block title %}Sign In{% endblock %}
 
-{% block title %}Login{% endblock %}
+{% block extra_css %}
+<style>
+.auth-wrap {
+    min-height: calc(100vh - 72px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+.auth-card-header {
+    background: var(--brand);
+    padding: 2.5rem 2rem 2rem;
+    text-align: center;
+}
+.auth-card-body { padding: 2rem; }
+.auth-icon-wrap {
+    width: 56px; height: 56px;
+    background: var(--accent);
+    border-radius: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: white; margin-bottom: 1rem;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center animate__animated animate__fadeIn">
-    <div class="col-md-5">
-        <div class="card p-4 shadow-lg border-0 animate__animated animate__zoomIn">
-            <h2 class="text-center mb-2 animate__animated animate__slideInDown">Login</h2>
-            <p class="text-center text-muted small mb-4 animate__animated animate__fadeIn">Access your account as a User or Admin</p>
+<div class="auth-wrap">
+    <div class="auth-card animate__animated animate__fadeInUp animate__faster">
+        <div class="auth-card-header">
+            <div class="auth-icon-wrap"><i class="bi bi-person-fill"></i></div>
+            <h2 class="text-white mb-1 fw-800" style="font-size:1.5rem;">Welcome back</h2>
+            <p class="mb-0" style="color:rgba(255,255,255,0.5);font-size:0.875rem;">Sign in to your QueueNova account</p>
+        </div>
+        <div class="auth-card-body">
             <form method="post">
                 {% csrf_token %}
                 {% for field in form %}
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                            <div class="text-danger small">{{ field.errors }}</div>
-                        {% endif %}
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors.0 }}</div>
+                    {% endif %}
+                </div>
                 {% endfor %}
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="form-check">
+
+                <div class="d-flex justify-content-between align-items-center mb-4 mt-1">
+                    <div class="form-check mb-0">
                         <input class="form-check-input" type="checkbox" id="rememberMe">
-                        <label class="form-check-label small" for="rememberMe">Remember me</label>
+                        <label class="form-check-label small" for="rememberMe" style="color:var(--text-muted);">Remember me</label>
                     </div>
-                    <a href="{% url 'users:password_reset' %}" class="small text-primary text-decoration-none">Forgot password?</a>
+                    <a href="{% url 'users:password_reset' %}" class="small text-decoration-none" style="color:var(--accent);">Forgot password?</a>
                 </div>
-                <div class="d-grid mt-4">
-                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">Login</button>
-                </div>
+
+                <button type="submit" class="btn btn-primary w-100 btn-lg">
+                    Sign In <i class="bi bi-arrow-right ms-1"></i>
+                </button>
             </form>
 
+            <hr class="my-4" style="border-color:var(--border);">
 
-            </div>
-            <div class="mt-3 text-center">
-                <p>Don't have an account? <a href="{% url 'users:register' %}">Register here</a></p>
-                <p class="small">Want to manage a queue? <a href="{% url 'users:admin_register' %}">Register as Admin</a></p>
+            <div class="text-center" style="font-size:0.875rem;">
+                <p class="text-muted mb-2">Don't have an account? <a href="{% url 'users:register' %}" style="color:var(--accent);font-weight:600;">Register</a></p>
+                <p class="mb-0 text-muted">Managing a queue? <a href="{% url 'users:admin_register' %}" style="color:var(--accent);font-weight:600;">Admin Register</a></p>
             </div>
         </div>
     </div>
