@@ -1,109 +1,111 @@
-{% extends "base.html" %}
-{% block title %}Edit User Profile{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Edit User — {{ object.email }}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-10 col-lg-8">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3 border-bottom d-flex align-items-center">
-                <a href="{% url 'custom_admin:manage_users' %}" class="btn btn-link text-muted me-3 p-0">
-                    <i class="bi bi-arrow-left fs-4"></i>
-                </a>
-                <h4 class="mb-0 fw-bold">Edit User Profile: {{ user.email }}</h4>
-            </div>
-            <div class="card-body p-4 p-md-5">
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    
-                    <div class="row g-4">
-                        <div class="col-12 text-center mb-4">
-                            <div class="position-relative d-inline-block">
-                                {% if object.profile_picture %}
-                                    <img src="{{ object.profile_picture.url }}" id="profile-preview" alt="Profile" class="rounded-circle shadow-sm" style="width: 150px; height: 150px; object-fit: cover;">
-                                {% else %}
-                                    <img src="https://ui-avatars.com/api/?name={{ object.email }}&size=150&background=0D6EFD&color=fff" id="profile-preview" alt="Profile" class="rounded-circle shadow-sm">
-                                {% endif %}
-                                <div class="mt-3">
-                                    <label for="{{ form.profile_picture.id_for_label }}" class="btn btn-sm btn-outline-primary px-3 rounded-pill cursor-pointer">
-                                        <i class="bi bi-camera me-1"></i> Change Photo
-                                    </label>
-                                    <div class="d-none">{{ form.profile_picture }}</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label class="form-label fw-semibold text-muted small text-uppercase mb-2">Full Name</label>
-                                {{ form.full_name }}
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label class="form-label fw-semibold text-muted small text-uppercase mb-2">Email</label>
-                                {{ form.email }}
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <div class="form-group mb-3">
-                                <label class="form-label fw-semibold text-muted small text-uppercase mb-2">Phone Number</label>
-                                {{ form.phone_number }}
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group mb-3 d-flex align-items-center h-100 pt-3">
-                                <div class="form-check form-switch me-4">
-                                    {{ form.is_active }}
-                                    <label class="form-check-label fw-bold ms-2">Active</label>
-                                </div>
-                                <div class="form-check form-switch me-4">
-                                    {{ form.is_staff }}
-                                    <label class="form-check-label fw-bold ms-2">Staff</label>
-                                </div>
-                                <div class="form-check form-switch">
-                                    {{ form.is_superuser }}
-                                    <label class="form-check-label fw-bold ms-2">Superuser</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-12">
-                            <div class="form-group mb-3">
-                                <label class="form-label fw-semibold text-muted small text-uppercase mb-2">Bio</label>
-                                {{ form.bio }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr class="my-4 border-light">
-
-                    <div class="d-flex justify-content-end gap-3">
-                        <a href="{% url 'custom_admin:manage_users' %}" class="btn btn-light px-4">Cancel</a>
-                        <button type="submit" class="btn btn-primary px-5 shadow-sm">Update User Profile</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'custom_admin:manage_users' %}" class="btn btn-sm btn-outline-secondary border-0 p-2">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <div>
+        <h1 class="fw-800 mb-0" style="font-size:1.4rem;">Edit User</h1>
+        <p class="text-muted mb-0" style="font-size:0.8rem;">{{ object.email }}</p>
     </div>
+</div>
+
+<div class="row justify-content-center">
+<div class="col-lg-8">
+<div class="card border-0 shadow">
+    <div class="card-body p-4 p-lg-5">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Avatar -->
+            <div class="text-center mb-4 pb-4" style="border-bottom:1px solid var(--border);">
+                <div style="position:relative;display:inline-block;">
+                    {% if object.profile_picture %}
+                        <img src="{{ object.profile_picture }}" id="avatar-preview" class="rounded-circle" style="width:90px;height:90px;object-fit:cover;border:3px solid var(--border);" alt="">
+                    {% else %}
+                        <div id="avatar-placeholder" style="width:90px;height:90px;border-radius:50%;background:var(--accent);color:white;display:inline-flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;border:3px solid var(--border);">
+                            {{ object.email|slice:":1"|upper }}
+                        </div>
+                        <img id="avatar-preview" class="rounded-circle d-none" style="width:90px;height:90px;object-fit:cover;border:3px solid var(--border);" alt="">
+                    {% endif %}
+                    <label for="id_profile_picture_file" style="position:absolute;bottom:2px;right:2px;width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;border:2px solid white;">
+                        <i class="bi bi-camera-fill"></i>
+                    </label>
+                    <input type="file" id="id_profile_picture_file" name="profile_picture_file" accept="image/*" class="d-none">
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Full Name</label>
+                    {{ form.full_name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    {{ form.email }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Phone Number</label>
+                    {{ form.phone_number }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Bio</label>
+                    {{ form.bio }}
+                </div>
+
+                <!-- Permission toggles -->
+                <div class="col-12">
+                    <div class="p-3 rounded-3" style="background:var(--surface-2);border:1px solid var(--border);">
+                        <div class="fw-700 mb-3" style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">
+                            <i class="bi bi-shield me-2"></i>Permissions
+                        </div>
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check form-switch mb-0">
+                                {{ form.is_active }}
+                                <label class="form-check-label fw-600" for="{{ form.is_active.id_for_label }}">Active</label>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                {{ form.is_staff }}
+                                <label class="form-check-label fw-600" for="{{ form.is_staff.id_for_label }}">Staff / Admin</label>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                {{ form.is_superuser }}
+                                <label class="form-check-label fw-600" for="{{ form.is_superuser.id_for_label }}">Superuser</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 justify-content-end mt-4 pt-3" style="border-top:1px solid var(--border);">
+                <a href="{% url 'custom_admin:manage_users' %}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-check2 me-2"></i>Update User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    const profileInput = document.getElementById('{{ form.profile_picture.id_for_label }}');
-    const profilePreview = document.getElementById('profile-preview');
-
-    profileInput.addEventListener('change', function() {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                profilePreview.src = e.target.result;
-            }
-            reader.readAsDataURL(this.files[0]);
-        }
-    });
+const fileInput = document.getElementById('id_profile_picture_file');
+const preview = document.getElementById('avatar-preview');
+const placeholder = document.getElementById('avatar-placeholder');
+fileInput?.addEventListener('change', function () {
+    if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            if (preview) { preview.src = e.target.result; preview.classList.remove('d-none'); }
+            if (placeholder) placeholder.style.display = 'none';
+        };
+        reader.readAsDataURL(this.files[0]);
+    }
+});
 </script>
 {% endblock %}
