@@ -1,110 +1,121 @@
 {% extends 'base.html' %}
-
 {% block title %}My Tokens{% endblock %}
 
+{% block extra_css %}
+<style>
+.token-number-badge { font-family:'Syne',sans-serif; font-weight:800; font-size:1.1rem; color:var(--accent); }
+.status-chip { display:inline-flex; align-items:center; gap:5px; padding:0.3em 0.75em; border-radius:50px; font-size:0.75rem; font-weight:600; }
+.pending-alert { border-left: 4px solid var(--warning); background: #fffbeb; border-radius: 0 12px 12px 0; padding: 1rem 1.25rem; }
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="container">
+
 {% if pending_payments %}
-<div class="row mb-4">
-    <div class="col">
-        <h4 class="text-warning"><i class="bi bi-hourglass-split"></i> Pending Payment Approvals</h4>
-        <div class="card shadow-sm border-warning border-start border-4">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Service</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Requested At</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for payment in pending_payments %}
-                        <tr>
-                            <td>
-                                <strong>{{ payment.service.name }}</strong><br>
-                                <small class="text-muted">{{ payment.service.organization.name }}</small>
-                            </td>
-                            <td>₹{{ payment.amount }}</td>
-                            <td><span class="badge bg-warning">Awaiting Approval</span></td>
-                            <td>{{ payment.created_at|date:"d M Y, H:i" }}</td>
-                            <td>
-                                <span class="text-muted small">Please pay at counter</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+<div class="mb-4">
+    <h5 class="fw-700 mb-3"><i class="bi bi-hourglass-split text-warning me-2"></i>Pending Payment Approvals</h5>
+    <div class="card border-0 shadow">
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead><tr>
+                    <th>Service</th><th>Amount</th><th>Status</th><th>Requested</th>
+                </tr></thead>
+                <tbody>
+                    {% for payment in pending_payments %}
+                    <tr>
+                        <td>
+                            <div class="fw-600">{{ payment.service.name }}</div>
+                            <div class="text-muted small">{{ payment.service.organization.name }}</div>
+                        </td>
+                        <td class="fw-700">₹{{ payment.amount }}</td>
+                        <td><span class="status-chip badge-waiting">⏳ Awaiting Approval</span></td>
+                        <td class="text-muted small">{{ payment.created_at|date:"d M, H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 {% endif %}
 
-<div class="row mb-4">
-    <div class="col">
-        <h2>My Token History</h2>
-        <p class="text-muted">View all your current and previous tokens</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-800 mb-1" style="font-size:1.25rem;">My Token History</h2>
+        <p class="text-muted mb-0" style="font-size:0.85rem;">Track all your current and past queue tokens</p>
     </div>
+    <a href="/" class="btn btn-primary btn-sm btn-pill px-3">
+        <i class="bi bi-plus me-1"></i>Join Queue
+    </a>
 </div>
 
-<div class="card shadow-sm">
+<div class="card border-0 shadow">
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Token #</th>
-                    <th>Service</th>
-                    <th>Status</th>
-                    <th>Queue Position</th>
-                    <th>Estimated Wait</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
+        <table class="table mb-0">
+            <thead><tr>
+                <th>Token</th>
+                <th>Service</th>
+                <th>Status</th>
+                <th>Position</th>
+                <th>Wait Time</th>
+                <th>Date</th>
+                <th></th>
+            </tr></thead>
             <tbody>
                 {% for token in tokens %}
                 <tr>
-                    <td><span class="badge bg-primary fs-6">#{{ token.token_number }}</span></td>
+                    <td><span class="token-number-badge">#{{ token.token_number }}</span></td>
                     <td>
-                        <strong>{{ token.service.name }}</strong><br>
-                        <small class="text-muted">{{ token.service.organization.name }}</small>
+                        <div class="fw-600" style="font-size:0.875rem;">{{ token.service.name }}</div>
+                        <div class="text-muted" style="font-size:0.78rem;">{{ token.service.organization.name }}</div>
                     </td>
                     <td>
-                        <span class="badge {% if token.status == 'waiting' %}bg-warning{% elif token.status == 'serving' %}bg-info{% elif token.status == 'completed' %}bg-success{% else %}bg-danger{% endif %} text-capitalize">
-                            {{ token.status }}
+                        <span class="status-chip
+                            {% if token.status == 'waiting' %}badge-waiting
+                            {% elif token.status == 'near' %}badge-near
+                            {% elif token.status == 'serving' %}badge-serving
+                            {% elif token.status == 'completed' %}badge-completed
+                            {% else %}badge-cancelled{% endif %}">
+                            {{ token.status|capfirst }}
                         </span>
                     </td>
                     <td>
                         {% if token.people_ahead is not None %}
-                            <span class="fw-bold">{{ token.people_ahead|add:1 }}</span>
+                            <span class="fw-700">#{{ token.people_ahead|add:1 }}</span>
                         {% else %}
-                            <span class="text-muted small">N/A</span>
+                            <span class="text-muted">—</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if token.estimated_wait is not None %}
-                            <span class="text-primary fw-medium">{{ token.estimated_wait }} min</span>
+                            <span style="color:var(--info);font-weight:600;">~{{ token.estimated_wait }} min</span>
                         {% else %}
-                            <span class="text-muted small">N/A</span>
+                            <span class="text-muted">—</span>
                         {% endif %}
                     </td>
-                    <td>{{ token.created_at|date:"d M Y, H:i" }}</td>
+                    <td class="text-muted" style="font-size:0.8rem;">{{ token.created_at|date:"d M, H:i" }}</td>
                     <td>
-                        <a href="{% url 'tokens:token_detail' token.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                        <a href="{% url 'tokens:token_detail' token.id %}" class="btn btn-sm btn-outline-primary border-0 px-3">View</a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center py-5 text-muted">
-                        <p class="mb-0">You haven't generated any tokens yet.</p>
-                        <a href="/" class="btn btn-primary mt-3">Join a Queue</a>
+                    <td colspan="7">
+                        <div class="text-center py-5">
+                            <div style="width:64px;height:64px;background:var(--surface-3);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.6rem;color:var(--text-light);margin-bottom:1rem;">
+                                <i class="bi bi-ticket-perforated"></i>
+                            </div>
+                            <h6 class="text-muted fw-600">No tokens yet</h6>
+                            <p class="text-muted small mb-3">Join a queue to get started</p>
+                            <a href="/" class="btn btn-primary btn-sm btn-pill px-4">Browse Organizations</a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+</div>
 </div>
 {% endblock %}
