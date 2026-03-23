@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Delete Organization{% endblock %}
+{% block title %}Delete Service{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-center" style="padding-top:2rem;">
@@ -8,9 +8,9 @@
             <div style="width:72px;height:72px;background:#fee2e2;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;color:#dc2626;margin:0 auto 1.5rem;">
                 <i class="bi bi-exclamation-triangle-fill"></i>
             </div>
-            <h4 class="fw-800 mb-2">Delete Organization?</h4>
+            <h4 class="fw-800 mb-2">Delete Service?</h4>
             <p class="text-muted mb-4" style="font-size:0.9rem;">
-                You are about to permanently delete <strong>{{ object.name }}</strong>. All associated services and tokens will be removed. This cannot be undone.
+                You are about to permanently delete <strong>{{ object.name }}</strong> ({{ object.organization.name }}). All associated tokens will also be removed. This cannot be undone.
             </p>
             <form method="post">
                 {% csrf_token %}
@@ -18,7 +18,7 @@
                     <button type="submit" class="btn btn-danger btn-lg">
                         <i class="bi bi-trash me-2"></i>Yes, Delete Forever
                     </button>
-                    <a href="{% url 'custom_admin:manage_organizations' %}" class="btn btn-outline-secondary">Cancel</a>
+                    <a href="{% url 'custom_admin:manage_services' %}" class="btn btn-outline-secondary">Cancel</a>
                 </div>
             </form>
         </div>
