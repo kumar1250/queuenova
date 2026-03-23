@@ -1,29 +1,26 @@
 {% extends 'base.html' %}
-
-{% block title %}Delete Service{% endblock %}
+{% block title %}Delete Organization{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card shadow border-0">
-            <div class="card-body p-5 text-center">
-                <div class="mb-4 text-danger">
-                    <i class="bi bi-exclamation-triangle-fill fs-1"></i>
-                </div>
-                <h4 class="mb-3">Confirm Deletion</h4>
-                <p class="text-muted mb-4">You are about to delete <strong>{{ object.name }}</strong> ({{ object.organization.name }}). All associated tokens will be permanently removed.</p>
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-danger py-2">
-                            <i class="bi bi-trash me-2"></i>Delete Forever
-                        </button>
-                        <a href="{% url 'custom_admin:manage_services' %}" class="btn btn-outline-secondary py-2">
-                            Cancel
-                        </a>
-                    </div>
-                </form>
+<div class="d-flex justify-content-center" style="padding-top:2rem;">
+    <div style="max-width:460px;width:100%;" class="animate__animated animate__fadeIn">
+        <div class="card border-0 shadow text-center p-5">
+            <div style="width:72px;height:72px;background:#fee2e2;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;color:#dc2626;margin:0 auto 1.5rem;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
             </div>
+            <h4 class="fw-800 mb-2">Delete Organization?</h4>
+            <p class="text-muted mb-4" style="font-size:0.9rem;">
+                You are about to permanently delete <strong>{{ object.name }}</strong>. All associated services and tokens will be removed. This cannot be undone.
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="bi bi-trash me-2"></i>Yes, Delete Forever
+                    </button>
+                    <a href="{% url 'custom_admin:manage_organizations' %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
         </div>
     </div>
 </div>
