@@ -1,206 +1,143 @@
 {% extends 'base.html' %}
-
-{% block title %}Checkout - {{ service.name }}{% endblock %}
+{% block title %}Checkout — {{ service.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .payment-card {
-        border: 2px solid transparent;
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    .payment-card:hover {
-        border-color: var(--primary-color);
-        transform: translateY(-5px);
-    }
-    .payment-icon {
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-    }
+.checkout-wrap { max-width: 680px; margin: 0 auto; }
+.pay-card { border: 2px solid var(--border); border-radius: 16px; padding: 1.5rem; cursor: pointer; transition: all 0.2s; background: var(--surface); }
+.pay-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(233,69,96,0.12); }
+.pay-card.disabled-card { opacity: 0.45; pointer-events: none; }
+.pay-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 0.75rem; }
+.amount-box { background: var(--brand); border-radius: 16px; padding: 2rem; text-align: center; color: white; }
+.amount-big { font-family:'Syne',sans-serif; font-weight:900; font-size:3.5rem; line-height:1; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center animate__animated animate__fadeIn">
-    <div class="col-lg-8 col-md-10">
-        <!-- Step Indicator -->
-        <div class="d-flex justify-content-center mb-5">
-            <div class="text-center px-4">
-                <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">
-                    <i class="bi bi-check-lg"></i>
-                </div>
-                <div class="small fw-bold text-muted mt-2 text-uppercase">Registration</div>
-            </div>
-            <div class="align-self-center bg-success" style="height: 2px; width: 60px; margin-top: -20px;"></div>
-            <div class="text-center px-4">
-                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">2</div>
-                <div class="small fw-bold text-primary mt-2 text-uppercase">Payment</div>
-            </div>
-            <div class="align-self-center bg-light" style="height: 2px; width: 60px; margin-top: -20px;"></div>
-            <div class="text-center px-4">
-                <div class="rounded-circle bg-light text-muted d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px;">3</div>
-                <div class="small fw-bold text-muted mt-2 text-uppercase">Verification</div>
+<div class="container">
+<div class="checkout-wrap animate__animated animate__fadeIn">
+
+    <!-- Step indicator -->
+    <div class="d-flex align-items-center justify-content-center mb-5 gap-0">
+        <div class="text-center" style="flex:1;">
+            <div style="width:36px;height:36px;background:var(--success);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:white;font-size:0.9rem;font-weight:700;"><i class="bi bi-check"></i></div>
+            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--success);margin-top:5px;">Registration</div>
+        </div>
+        <div style="flex:0.5;height:2px;background:var(--success);margin-bottom:22px;"></div>
+        <div class="text-center" style="flex:1;">
+            <div style="width:36px;height:36px;background:var(--accent);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:white;font-size:0.875rem;font-weight:700;">2</div>
+            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--accent);margin-top:5px;">Payment</div>
+        </div>
+        <div style="flex:0.5;height:2px;background:var(--border);margin-bottom:22px;"></div>
+        <div class="text-center" style="flex:1;">
+            <div style="width:36px;height:36px;background:var(--surface-3);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.875rem;font-weight:700;">3</div>
+            <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-top:5px;">Token</div>
+        </div>
+    </div>
+
+    <!-- Amount box -->
+    <div class="amount-box mb-4">
+        <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.5rem;">Amount Payable</div>
+        <div class="amount-big">₹{{ service.payment_amount }}</div>
+        <div style="color:rgba(255,255,255,0.5);font-size:0.875rem;margin-top:0.5rem;">{{ service.name }} &nbsp;·&nbsp; {{ service.organization.name }}</div>
+    </div>
+
+    {% if razorpay_error %}
+    <div class="alert alert-warning d-flex gap-2 mb-4" style="font-size:0.85rem;">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+        <div><strong>Gateway notice:</strong> {{ razorpay_error }}</div>
+    </div>
+    {% endif %}
+
+    <h5 class="fw-700 mb-3" style="font-size:0.9rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">Choose Payment Method</h5>
+
+    <div class="row g-3">
+        <!-- Online -->
+        <div class="col-md-4">
+            <div class="pay-card text-center {% if not service.is_online_payment_allowed %}disabled-card{% endif %}"
+                 {% if service.is_online_payment_allowed %}onclick="document.getElementById('rzp-btn').click()"{% endif %}>
+                <div class="pay-icon mx-auto" style="background:#dbeafe;color:#1d4ed8;"><i class="bi bi-credit-card-2-front"></i></div>
+                <h6 class="fw-700 mb-1">Online</h6>
+                <p class="text-muted mb-3" style="font-size:0.78rem;">Cards, Net banking via Razorpay</p>
+                {% if service.is_online_payment_allowed and razorpay_order_id %}
+                    <button id="rzp-btn" class="btn btn-primary btn-sm btn-pill w-100">Pay Now</button>
+                    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+                    <script>
+                    var rzpOptions = {
+                        "key":"{{ razorpay_key_id }}","amount":"{{ razorpay_amount }}","currency":"INR",
+                        "name":"QueueNova","description":"Payment for {{ service.name }}",
+                        "order_id":"{{ razorpay_order_id }}",
+                        "callback_url":"{{ request.scheme }}://{{ request.get_host }}{% url 'payments:razorpay_callback' service.id %}",
+                        "prefill":{"name":"{{ request.user.full_name }}","email":"{{ request.user.email }}"},
+                        "theme":{"color":"#e94560"}
+                    };
+                    var rzp = new Razorpay(rzpOptions);
+                    document.getElementById('rzp-btn').onclick = function(e){ rzp.open(); e.preventDefault(); };
+                    </script>
+                {% else %}
+                    <button class="btn btn-secondary btn-sm btn-pill w-100 disabled">Unavailable</button>
+                {% endif %}
             </div>
         </div>
-        
 
-        <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-5">
-            <div class="card-header bg-white py-4 border-0 text-center">
-                <h2 class="fw-bold text-dark mb-1">Secure Checkout</h2>
-                <p class="text-muted mb-0">Select your preferred payment method</p>
+        <!-- UPI -->
+        <div class="col-md-4">
+            <div class="pay-card text-center" data-bs-toggle="modal" data-bs-target="#upiModal">
+                <div class="pay-icon mx-auto" style="background:#d1fae5;color:#065f46;"><i class="bi bi-qr-code-scan"></i></div>
+                <h6 class="fw-700 mb-1">UPI / QR</h6>
+                <p class="text-muted mb-3" style="font-size:0.78rem;">GPay, PhonePe, Paytm</p>
+                <button class="btn btn-success btn-sm btn-pill w-100">Pay via UPI</button>
             </div>
-            
-            <div class="card-body p-4 p-md-5">
-                <div class="row mb-5 justify-content-center">
-                    <div class="col-md-6 text-center">
-                        <div class="p-4 bg-light rounded-4 border">
-                            <h6 class="text-muted text-uppercase fw-bold mb-2" style="letter-spacing: 1px;">Amount Payable</h6>
-                            <h1 class="display-4 fw-bold text-primary mb-0">₹{{ service.payment_amount }}</h1>
-                            <hr class="my-3">
-                            <p class="mb-0"><strong>Service:</strong> {{ service.name }}</p>
-                            <p class="small text-muted mb-3">{{ service.organization.name }}</p>
-                            
-                            <form action="{% url 'payments:simulate_payment' service.id %}" method="post">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-success w-100 rounded-pill shadow-sm">
-                                    <i class="bi bi-play-circle me-2"></i>Test Payment (Skip Real Money)
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+        </div>
 
-                {% if razorpay_error %}
-                <div class="alert alert-warning border-0 shadow-sm mb-4 d-flex align-items-center">
-                    <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
-                    <div>
-                        <strong>Payment Gateway Info:</strong> {{ razorpay_error }}
-                        <div class="small">Live payments might be restricted in this environment.</div>
-                    </div>
-                </div>
+        <!-- Offline -->
+        <div class="col-md-4">
+            <div class="pay-card text-center {% if not service.is_offline_payment_allowed %}disabled-card{% endif %}"
+                 {% if service.is_offline_payment_allowed %}onclick="document.getElementById('offline-form').submit()"{% endif %}>
+                <div class="pay-icon mx-auto" style="background:#fef3c7;color:#92400e;"><i class="bi bi-cash-stack"></i></div>
+                <h6 class="fw-700 mb-1">At Counter</h6>
+                <p class="text-muted mb-3" style="font-size:0.78rem;">Pay cash at the service counter</p>
+                {% if service.is_offline_payment_allowed %}
+                    <form id="offline-form" action="{% url 'payments:offline_payment' service.id %}" method="post">{% csrf_token %}</form>
+                    <button type="button" onclick="document.getElementById('offline-form').submit()" class="btn btn-warning btn-sm btn-pill w-100 text-dark">Pay at Counter</button>
+                {% else %}
+                    <button class="btn btn-secondary btn-sm btn-pill w-100 disabled">Unavailable</button>
                 {% endif %}
-
-                <h5 class="fw-bold mb-4"><i class="bi bi-wallet2 me-2"></i>Payment Methods</h5>
-                
-                <div class="row g-4">
-                    <!-- Online Payment -->
-                    <div class="col-md-4">
-                        <div class="card payment-card h-100 shadow-sm text-center p-4 {% if not service.is_online_payment_allowed %}opacity-50{% endif %}"
-                             {% if service.is_online_payment_allowed %}onclick="document.getElementById('rzp-button1').click()"{% endif %}>
-                            <div class="payment-icon text-primary">
-                                <i class="bi bi-credit-card"></i>
-                            </div>
-                            <h5 class="fw-bold">Online Payment</h5>
-                            <p class="text-muted small mb-4">Pay instantly using Cards or Netbanking via Razorpay.</p>
-                            
-                            {% if service.is_online_payment_allowed and razorpay_order_id %}
-                                <button id="rzp-button1" class="btn btn-primary rounded-pill px-4 w-100">Pay Now</button>
-                                <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-                                <script>
-                                var options = {
-                                    "key": "{{ razorpay_key_id }}",
-                                    "amount": "{{ razorpay_amount }}",
-                                    "currency": "INR",
-                                    "name": "Smart Queue",
-                                    "description": "Payment for {{ service.name }}",
-                                    "order_id": "{{ razorpay_order_id }}",
-                                    "callback_url": "{{ request.scheme }}://{{ request.get_host }}{% url 'payments:razorpay_callback' service.id %}",
-                                    "prefill": {
-                                        "name": "{{ request.user.full_name }}",
-                                        "email": "{{ request.user.email }}"
-                                    },
-                                    "theme": { "color": "#0d6efd" }
-                                };
-                                var rzp1 = new Razorpay(options);
-                                document.getElementById('rzp-button1').onclick = function(e){
-                                    rzp1.open();
-                                    e.preventDefault();
-                                }
-                                </script>
-                            {% else %}
-                                <button class="btn btn-secondary disabled rounded-pill w-100">Online Unavailable</button>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Direct UPI Payment -->
-                    <div class="col-md-4">
-                        <div class="card payment-card h-100 shadow-sm text-center p-4"
-                             data-bs-toggle="modal" data-bs-target="#upiModal">
-                            <div class="payment-icon text-info">
-                                <i class="bi bi-qr-code-scan"></i>
-                            </div>
-                            <h5 class="fw-bold">Direct UPI</h5>
-                            <p class="text-muted small mb-4">Pay using any UPI App (GPay, PhonePe, Paytm) via QR/ID.</p>
-                            <button class="btn btn-info text-white rounded-pill px-4 w-100">Pay via UPI</button>
-                        </div>
-                    </div>
-
-                    <!-- Offline Payment -->
-                    <div class="col-md-4">
-                        <div class="card payment-card h-100 shadow-sm text-center p-4 {% if not service.is_offline_payment_allowed %}opacity-50{% endif %}"
-                             {% if service.is_offline_payment_allowed %}onclick="document.getElementById('offline-form').submit()"{% endif %}>
-                            <div class="payment-icon text-warning">
-                                <i class="bi bi-cash-stack"></i>
-                            </div>
-                            <h5 class="fw-bold">Offline Payment</h5>
-                            <p class="text-muted small mb-4">Pay manually at the counter. Token generated after admin approval.</p>
-                            
-                            {% if service.is_offline_payment_allowed %}
-                                <form id="offline-form" action="{% url 'payments:offline_payment' service.id %}" method="post">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-warning rounded-pill px-4 w-100">Pay at Counter</button>
-                                </form>
-                            {% else %}
-                                <button class="btn btn-light disabled rounded-pill w-100">Not Available</button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
     </div>
 </div>
+</div>
 
 <!-- UPI Modal -->
-<div class="modal fade" id="upiModal" tabindex="-1" aria-labelledby="upiModalLabel" aria-hidden="true" style="z-index: 9999;">
+<div class="modal fade" id="upiModal" tabindex="-1" aria-hidden="true" style="z-index:9999;">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="upiModalLabel">Pay via UPI</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content border-0 shadow" style="border-radius:20px;">
+            <div class="modal-header border-0 px-4 pt-4">
+                <h5 class="modal-title fw-800">Pay via UPI</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-center p-4">
-
-                <!-- QR Code: now read from database (base64), not disk -->
+            <div class="modal-body px-4 pb-4 text-center">
                 {% if service.organization.upi_qr_code_data %}
-                    <img src="{{ service.organization.upi_qr_code_data }}"
-                         alt="UPI QR Code"
-                         class="img-fluid rounded-3 mb-3 shadow-sm"
-                         style="max-height: 250px;">
+                    <img src="{{ service.organization.upi_qr_code_data }}" class="img-fluid rounded-3 mb-3 shadow-sm" style="max-height:220px;" alt="UPI QR">
                 {% else %}
-                    <div class="alert alert-light border mb-3 py-3">
-                        <i class="bi bi-qr-code fs-1 text-muted d-block mb-2"></i>
-                        <small class="text-muted">No QR code uploaded yet.<br>Admin can upload it from the organization settings.</small>
+                    <div class="py-4 px-3 rounded-3 mb-3" style="background:var(--surface-2);">
+                        <i class="bi bi-qr-code" style="font-size:3rem;color:var(--text-light);display:block;margin-bottom:0.5rem;"></i>
+                        <small class="text-muted">No QR uploaded yet.</small>
                     </div>
                 {% endif %}
-                
-                <div class="bg-light p-3 rounded-3 mb-4">
-                    <p class="small text-muted mb-1">UPI ID / VPA</p>
-                    <h5 class="fw-bold mb-0 text-primary">{{ service.organization.upi_id|default:"Not Provided" }}</h5>
+                <div class="p-3 rounded-3 mb-4" style="background:var(--surface-2);">
+                    <div class="text-muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">UPI ID</div>
+                    <div class="fw-800 mt-1" style="font-size:1.1rem;color:var(--accent);">{{ service.organization.upi_id|default:"Not set" }}</div>
                 </div>
-
                 <form action="{% url 'payments:upi_payment' service.id %}" method="post">
                     {% csrf_token %}
                     <div class="mb-3 text-start">
-                        <label for="transaction_id" class="form-label small fw-bold">Transaction ID / UTR Number</label>
-                        <input type="text" class="form-control form-control-lg rounded-3 border-primary"
-                               id="transaction_id" name="transaction_id"
-                               placeholder="Enter 12-digit UTR" required style="border-width: 2px;">
-                        <div class="form-text">Enter the transaction ID after completing payment.</div>
+                        <label class="form-label">Transaction / UTR ID</label>
+                        <input type="text" class="form-control" name="transaction_id" placeholder="Enter 12-digit UTR" required>
+                        <div class="form-text">Enter the ID after completing payment in your UPI app.</div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill">Submit Payment Info</button>
+                    <button type="submit" class="btn btn-primary w-100 btn-lg btn-pill">Confirm Payment</button>
                 </form>
             </div>
         </div>
