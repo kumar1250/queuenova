@@ -10,6 +10,66 @@
 .pay-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 0.75rem; }
 .amount-box { background: var(--brand); border-radius: 16px; padding: 2rem; text-align: center; color: white; }
 .amount-big { font-family:'Syne',sans-serif; font-weight:900; font-size:3.5rem; line-height:1; }
+
+ /* FIX MODAL Z-INDEX ISSUE */
+.modal {
+    z-index: 20000 !important;
+}
+
+.modal-backdrop {
+    z-index: 19999 !important;
+}
+
+/* GLASS EFFECT MODAL */
+.upi-modal-glass {
+    background: rgba(10, 20, 40, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 18px;
+    border: 1px solid rgba(14,165,233,0.25);
+    color: white;
+}
+
+/* QR IMAGE */
+.upi-qr {
+    max-height: 220px;
+    border: 2px solid rgba(14,165,233,0.3);
+}
+
+/* EMPTY QR BOX */
+.upi-empty-box {
+    background: rgba(255,255,255,0.08);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+.upi-empty-box i {
+    font-size: 3rem;
+    color: rgba(255,255,255,0.4);
+    display: block;
+}
+
+/* UPI ID BOX */
+.upi-id-box {
+    background: rgba(14,165,233,0.08);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 18px;
+}
+.upi-label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.5);
+}
+.upi-id {
+    font-size: 18px;
+    font-weight: bold;
+    color: #38bdf8;
+}
+
+/* FIX CLOSE BUTTON */
+.btn-close-white {
+    filter: invert(1);
+}   
 </style>
 {% endblock %}
 
@@ -117,35 +177,61 @@
 </div>
 
 <!-- UPI Modal -->
-<div class="modal fade" id="upiModal" tabindex="-1" aria-hidden="true" style="z-index:9999;">
+<div class="modal fade" id="upiModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow" style="border-radius:20px;">
+        <div class="modal-content upi-modal-glass">
+
+            <!-- HEADER -->
             <div class="modal-header border-0 px-4 pt-4">
-                <h5 class="modal-title fw-800">Pay via UPI</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title fw-bold">Pay via UPI</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
+
+            <!-- BODY -->
             <div class="modal-body px-4 pb-4 text-center">
+
                 {% if service.organization.upi_qr_code_data %}
-                    <img src="{{ service.organization.upi_qr_code_data }}" class="img-fluid rounded-3 mb-3 shadow-sm" style="max-height:220px;" alt="UPI QR">
+                    <img src="{{ service.organization.upi_qr_code_data }}"
+                         class="img-fluid rounded-3 mb-3 shadow-sm upi-qr"
+                         alt="UPI QR">
                 {% else %}
-                    <div class="py-4 px-3 rounded-3 mb-3" style="background:var(--surface-2);">
-                        <i class="bi bi-qr-code" style="font-size:3rem;color:var(--text-light);display:block;margin-bottom:0.5rem;"></i>
-                        <small class="text-muted">No QR uploaded yet.</small>
+                    <div class="upi-empty-box">
+                        <i class="bi bi-qr-code"></i>
+                        <small>No QR uploaded yet.</small>
                     </div>
                 {% endif %}
-                <div class="p-3 rounded-3 mb-4" style="background:var(--surface-2);">
-                    <div class="text-muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">UPI ID</div>
-                    <div class="fw-800 mt-1" style="font-size:1.1rem;color:var(--accent);">{{ service.organization.upi_id|default:"Not set" }}</div>
+
+                <!-- UPI ID -->
+                <div class="upi-id-box">
+                    <div class="upi-label">UPI ID</div>
+                    <div class="upi-id">
+                        {{ service.organization.upi_id|default:"Not set" }}
+                    </div>
                 </div>
+
+                <!-- FORM -->
                 <form action="{% url 'payments:upi_payment' service.id %}" method="post">
                     {% csrf_token %}
+
                     <div class="mb-3 text-start">
                         <label class="form-label">Transaction / UTR ID</label>
-                        <input type="text" class="form-control" name="transaction_id" placeholder="Enter 12-digit UTR" required>
-                        <div class="form-text">Enter the ID after completing payment in your UPI app.</div>
+                        <input type="text"
+                               class="form-control"
+                               name="transaction_id"
+                               placeholder="Enter 12-digit UTR"
+                               pattern="[0-9]{12}"
+                               required>
+                        <div class="form-text">
+                            Enter the ID after completing payment in your UPI app.
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 btn-lg btn-pill">Confirm Payment</button>
+
+                    <button type="submit"
+                            class="btn btn-primary w-100 btn-lg rounded-pill">
+                        Confirm Payment
+                    </button>
                 </form>
+
             </div>
         </div>
     </div>
