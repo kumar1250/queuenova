@@ -1,36 +1,51 @@
 {% extends 'base.html' %}
-
 {% block title %}Admin Register{% endblock %}
 
+{% block extra_css %}
+<style>
+.auth-wrap { min-height:calc(100vh - 72px); display:flex; align-items:center; justify-content:center; padding:2rem 1rem; }
+.auth-card { width:100%; max-width:460px; background:var(--surface); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow-lg); overflow:hidden; }
+.auth-card-header { background:var(--brand); padding:2.5rem 2rem 2rem; text-align:center; }
+.auth-icon-wrap { width:56px;height:56px;background:#f59e0b;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;color:white;margin-bottom:1rem; }
+.auth-card-body { padding:2rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center animate__animated animate__fadeIn">
-    <div class="col-md-6">
-        <div class="card p-4 shadow-lg border-0 animate__animated animate__zoomIn">
-            <h2 class="text-center mb-2">Register Admin</h2>
-            <p class="text-center text-muted small mb-4">Create an account to manage organizations and services</p>
-            
+<div class="auth-wrap">
+    <div class="auth-card animate__animated animate__fadeInUp animate__faster">
+        <div class="auth-card-header">
+            <div class="auth-icon-wrap"><i class="bi bi-shield-lock-fill"></i></div>
+            <h2 class="text-white mb-1 fw-800" style="font-size:1.5rem;">Admin Registration</h2>
+            <p class="mb-0" style="color:rgba(255,255,255,0.5);font-size:0.875rem;">Register to manage organizations &amp; queues</p>
+        </div>
+        <div class="auth-card-body">
+            <div class="alert alert-warning d-flex align-items-center gap-2 mb-4" style="font-size:0.825rem;">
+                <i class="bi bi-shield-exclamation flex-shrink-0"></i>
+                <span>Admin accounts have elevated permissions. Use responsibly.</span>
+            </div>
             <form method="post">
                 {% csrf_token %}
                 {% for field in form %}
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.help_text %}
-                            <div class="form-text x-small" style="font-size: 0.75rem;">{{ field.help_text }}</div>
-                        {% endif %}
-                        {% if field.errors %}
-                            <div class="text-danger small">{{ field.errors }}</div>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-                <div class="d-grid mt-4">
-                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">Create Admin Account</button>
+                <div class="mb-3">
+                    <label class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <div class="form-text" style="font-size:0.78rem;">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% if field.errors %}
+                        <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ field.errors.0 }}</div>
+                    {% endif %}
                 </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-warning w-100 btn-lg text-dark fw-600 mt-2">
+                    Create Admin Account <i class="bi bi-arrow-right ms-1"></i>
+                </button>
             </form>
-
-            <div class="mt-4 text-center">
-                <p>Already have an account? <a href="{% url 'users:login' %}">Login here</a></p>
-                <p class="small">Looking for regular user registration? <a href="{% url 'users:register' %}">Click here</a></p>
+            <hr class="my-4" style="border-color:var(--border);">
+            <div class="text-center" style="font-size:0.875rem;">
+                <p class="text-muted mb-2">Already have an account? <a href="{% url 'users:login' %}" style="color:var(--accent);font-weight:600;">Sign In</a></p>
+                <p class="mb-0 text-muted">Regular user? <a href="{% url 'users:register' %}" style="color:var(--accent);font-weight:600;">Register here</a></p>
             </div>
         </div>
     </div>
