@@ -1,44 +1,129 @@
-from typing import Any
-from django.db import models
-from django.db.models import Count, Q
-from django.shortcuts import render, redirect, get_object_or_404
+import csv
+import logging
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.views.generic import View, DetailView, ListView, TemplateView, FormView
 from django.core.mail import send_mail
 from django.conf import settings
-from django.core.files import File
-from django.urls import reverse
-from django.utils import timezone
-from io import BytesIO
-import qrcode
-import csv
+from django.db.models import Count, Q, Prefetch
 from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from django.views.generic import View, DetailView, ListView, TemplateView
 
 from organizations.models import Service
 from dynamic_forms.forms import get_dynamic_form_class
+from payments.models import Payment
 from .models import Token, TokenFormData, Notification
 from .utils import create_token
-from payments.models import Payment
 
-def generate_qr_code(data: str) -> BytesIO:
-    """Utility to generate QR code as a BytesIO buffer."""
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(data)
-    qr.make(fit=True)
-    img = qr.make_image(fill='black', back_color='white')
-    buffer = BytesIO()
-    img.save(buffer, format='PNG')
-    buffer.seek(0)
-    return buffer
+logger = logging.getLogger(__name__)
+
+
+# ─── Mixins ───────────────────────────────────────────────────────────────────
 
 class StaffRequiredMixin(UserPassesTestMixin):
-    """Mixin to ensure user is staff."""
+    """Allow access only to staff (organization owners)."""
+
     def test_func(self):
         return self.request.user.is_staff
 
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+def _get_today():
+    return timezone.now().date()
+
+
+def _parse_date(date_str, fallback=None):
+    """Safely parse a YYYY-MM-DD string; return fallback on error."""
+    if not date_str:
+        return fallback or _get_today()
+    try:
+        return timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return fallback or _get_today()
+
+
+def _annotate_queue_position(tokens, today):
+    """
+    Attach .people_ahead and .estimated_wait to each token in the iterable.
+
+    Does ONE bulk query per service (not one per token) to avoid N+1.
+    """
+    # Group tokens by service so we can batch the lookups
+    service_ids = {t.service_id for t in tokens if t.status in ('waiting', 'near')}
+
+    # Single query: for each service, is anyone currently being served today?
+    serving_service_ids = set(
+        Token.objects.filter(
+            service_id__in=service_ids,
+            status='serving',
+            date=today,
+        ).values_list('service_id', flat=True).distinct()
+    )
+
+    for token in tokens:
+        if token.status not in ('waiting', 'near'):
+            token.people_ahead = None
+            token.estimated_wait = None
+            continue
+
+        people_ahead = Token.objects.filter(
+            service=token.service,
+            status__in=('waiting', 'near'),
+            date=today,
+            created_at__lt=token.created_at,
+        ).count()
+
+        serving_exists = token.service_id in serving_service_ids
+        wait_intervals = people_ahead + 1 if serving_exists else people_ahead
+        token.people_ahead = people_ahead
+        token.estimated_wait = wait_intervals * token.service.average_service_time
+
+    return tokens
+
+
+def _send_status_email(token, status, custom_msg=None):
+    """
+    Send a status-update email to the token holder.
+    Logs success/failure — never silently swallows errors.
+    """
+    if not token.user or not token.user.email:
+        return
+
+    subject = f"Queue Update – Token #{token.token_number} is {status.capitalize()}"
+    message = custom_msg or (
+        f"Hello,\n\n"
+        f"The status of your token #{token.token_number} "
+        f"for {token.service.name} has been updated to: {status.capitalize()}.\n\n"
+        f"Thank you,\nQueueNova Team"
+    )
+
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[token.user.email],
+            fail_silently=False,   # raise so we can log the real error
+        )
+        logger.info(
+            "Status email sent to %s for token #%s (status=%s)",
+            token.user.email, token.token_number, status,
+        )
+    except Exception as exc:
+        logger.error(
+            "Failed to send status email to %s for token #%s: %s",
+            token.user.email, token.token_number, exc,
+        )
+
+
+# ─── Public / User Views ──────────────────────────────────────────────────────
+
 class ServiceFormView(LoginRequiredMixin, View):
-    """View to handle dynamic service forms."""
+    """Render and process the dynamic form for a service."""
+
     template_name = 'tokens/service_form.html'
 
     def get(self, request, service_id):
@@ -46,55 +131,57 @@ class ServiceFormView(LoginRequiredMixin, View):
         if not service.is_active:
             messages.error(request, "This service is currently unavailable.")
             return redirect('organizations:organization_list')
-        
-        DynamicForm = get_dynamic_form_class(service)
-        form = DynamicForm()
+
+        form = get_dynamic_form_class(service)()
         return render(request, self.template_name, {'service': service, 'form': form})
 
     def post(self, request, service_id):
         service = get_object_or_404(Service, id=service_id)
-        DynamicForm = get_dynamic_form_class(service)
-        form = DynamicForm(request.POST)
-        
+        form = get_dynamic_form_class(service)(request.POST)
+
         if form.is_valid():
             request.session[f'form_data_{service_id}'] = form.cleaned_data
             if service.is_payment_required:
                 return redirect('payments:payment_checkout', service_id=service.id)
             return redirect('tokens:generate_token', service_id=service.id)
-            
+
         return render(request, self.template_name, {'service': service, 'form': form})
 
+
 class GenerateTokenView(LoginRequiredMixin, View):
-    """View to generate a new token after form submission and payment."""
-    
+    """Create a token after the form (and optional payment) is complete."""
+
     def get(self, request, service_id):
         service = get_object_or_404(Service, id=service_id)
         form_data = request.session.get(f'form_data_{service_id}')
-        payment_id = request.session.get(f'payment_id_{service_id}')
-        
+
         if not form_data:
             return redirect('tokens:service_form', service_id=service.id)
-            
+
         payment = None
         if service.is_payment_required:
+            payment_id = request.session.get(f'payment_id_{service_id}')
             if not payment_id:
-                messages.error(request, "Payment not verified")
+                messages.error(request, "Payment not verified.")
                 return redirect('tokens:service_form', service_id=service.id)
+
             payment = get_object_or_404(Payment, id=payment_id)
             if payment.status != 'completed':
-                messages.error(request, "Payment failed or pending")
+                messages.error(request, "Payment failed or still pending.")
                 return redirect('tokens:service_form', service_id=service.id)
 
         token = create_token(request.user, service, payment, form_data, request)
-            
-        # Clear session
+
+        # Clear session data for this service
         request.session.pop(f'form_data_{service_id}', None)
         request.session.pop(f'payment_id_{service_id}', None)
-                
+
         return redirect('tokens:token_detail', token_id=token.id)
 
+
 class TokenDetailView(LoginRequiredMixin, DetailView):
-    """View to display token details and queue status."""
+    """Display a single token with live queue position."""
+
     model = Token
     template_name = 'tokens/token_detail.html'
     pk_url_kwarg = 'token_id'
@@ -103,357 +190,317 @@ class TokenDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         token = self.object
-        today = timezone.now().date()
-        
-        if token.status in ['waiting', 'near']:
+        today = _get_today()
+
+        if token.status in ('waiting', 'near'):
             people_ahead = Token.objects.filter(
-                service=token.service, 
-                status__in=['waiting', 'near'],
+                service=token.service,
+                status__in=('waiting', 'near'),
                 date=today,
-                created_at__lt=token.created_at
+                created_at__lt=token.created_at,
             ).count()
-            
-            context['people_ahead'] = people_ahead
-            context['current_position'] = people_ahead + 1
-            
-            # Check if someone is being served for this service
+
             serving_exists = Token.objects.filter(
                 service=token.service,
                 status='serving',
-                date=today
+                date=today,
             ).exists()
-            
+
             wait_intervals = people_ahead + 1 if serving_exists else people_ahead
+            context['people_ahead'] = people_ahead
+            context['current_position'] = people_ahead + 1
             context['estimated_wait'] = wait_intervals * token.service.average_service_time
+
         return context
 
-class QueueDashboardView(StaffRequiredMixin, ListView):
-    """Admin dashboard for live queue management."""
-    model = Token
-    template_name = 'tokens/dashboard.html'
-    context_object_name = 'tokens'
-    paginate_by = 20
-
-    def get_queryset(self):
-        queryset = Token.objects.filter(
-            service__organization__owner=self.request.user
-        )
-        
-        selected_date_str = self.request.GET.get('date')
-        if selected_date_str:
-            try:
-                today = timezone.datetime.strptime(selected_date_str, '%Y-%m-%d').date()
-                queryset = queryset.filter(created_at__date=today)
-            except ValueError:
-                pass
-        else:
-            # Default to today
-            today = timezone.now().date()
-            queryset = queryset.filter(created_at__date=today)
-
-        service_id = self.request.GET.get('service_id')
-        if service_id:
-            queryset = queryset.filter(service_id=service_id)
-        
-        # Calculate wait info for each token
-        today = timezone.now().date()
-        for token in queryset:
-            if token.status in ['waiting', 'near']:
-                people_ahead = Token.objects.filter(
-                    service=token.service,
-                    status__in=['waiting', 'near'],
-                    date=today,
-                    created_at__lt=token.created_at
-                ).count()
-                
-                # Check if someone is being served for this service
-                serving_exists = Token.objects.filter(
-                    service=token.service,
-                    status='serving',
-                    date=today
-                ).exists()
-                
-                wait_intervals = people_ahead + 1 if serving_exists else people_ahead
-                token.people_ahead = people_ahead
-                token.estimated_wait = wait_intervals * token.service.average_service_time
-            else:
-                token.people_ahead = None
-                token.estimated_wait = None
-                
-        return queryset.order_by('-created_at')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        today = timezone.now().date()
-        selected_date_str = self.request.GET.get('date')
-        if selected_date_str:
-            try:
-                today = timezone.datetime.strptime(selected_date_str, '%Y-%m-%d').date()
-            except ValueError:
-                pass
-        context['selected_date'] = today
-        
-        context['services'] = Service.objects.filter(organization__owner=self.request.user)
-        selected_service_id = self.request.GET.get('service_id')
-        context['selected_service_id'] = int(selected_service_id) if selected_service_id else None
-        return context
-
-class UpdateTokenStatusView(StaffRequiredMixin, View):
-    """View to update token status by staff."""
-    
-    def post(self, request, token_id):
-        token = get_object_or_404(Token, id=token_id, service__organization__owner=request.user)
-        new_status = request.POST.get('status')
-        
-        if new_status in dict(Token.STATUS_CHOICES):
-            old_status = token.status
-            token.status = new_status
-            token.save()
-            
-            # Create professional notifications
-            msg = f"Your token #{token.token_number} status is now: {new_status.capitalize()}."
-            if new_status == 'near':
-                msg = f"Please be ready! Your token #{token.token_number} is near. You are next in line."
-            elif new_status == 'serving':
-                msg = f"It's your turn! Your token #{token.token_number} is now being served at the counter."
-            
-            Notification.objects.create(
-                token=token,
-                message=msg
-            )
-            
-            self._send_status_email(token, new_status, msg)
-            messages.success(request, f"Token #{token.token_number} status updated to {new_status}")
-        
-        return redirect(request.META.get('HTTP_REFERER', 'tokens:queue_dashboard'))
-
-    def _send_status_email(self, token, status, custom_msg=None):
-        """Helper to send status update email."""
-        if token.user:
-            try:
-                subject = f"Queue Update - Token #{token.token_number} is {status.capitalize()}"
-                message = custom_msg if custom_msg else f"Hello,\n\nThe status of your token #{token.token_number} for {token.service.name} has been updated to: {status.capitalize()}."
-                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [token.user.email], fail_silently=True)
-            except Exception:
-                pass
-
-class QueueAnalyticsView(StaffRequiredMixin, TemplateView):
-    """View for queue analytics and reporting."""
-    template_name = 'tokens/analytics.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        today = timezone.now().date()
-        selected_date_str = self.request.GET.get('date')
-        if selected_date_str:
-            try:
-                today = timezone.datetime.strptime(selected_date_str, '%Y-%m-%d').date()
-            except ValueError:
-                pass
-        context['selected_date'] = today
-
-        base_tokens = Token.objects.filter(
-            service__organization__owner=self.request.user,
-            created_at__date=today
-        )
-        
-        context['total_tokens'] = base_tokens.count()
-        context['completed_tokens'] = base_tokens.filter(status='completed').count()
-        context['waiting_tokens'] = base_tokens.filter(status='waiting').count()
-        
-        # Calculate actual average wait time
-        completed_tokens_list = base_tokens.filter(status='completed')
-        total_wait = 0
-        count = 0
-        for t in completed_tokens_list:
-            duration = (t.updated_at - t.created_at).total_seconds() / 60
-            total_wait += duration
-            count += 1
-        
-        avg_wait_val = round(total_wait / count) if count > 0 else 0
-        context['avg_wait'] = f"{avg_wait_val} min"
-        
-        context['service_stats'] = Service.objects.filter(
-            organization__owner=self.request.user
-        ).annotate(
-            total=Count('tokens', filter=Q(tokens__created_at__date=today)),
-            completed=Count('tokens', filter=Q(tokens__status='completed', tokens__created_at__date=today)),
-            waiting=Count('tokens', filter=Q(tokens__status='waiting', tokens__created_at__date=today))
-        )
-        return context
-
-class NotificationListView(LoginRequiredMixin, ListView):
-    """View to list notifications for a specific token."""
-    model = Notification
-    template_name = 'tokens/notifications.html'
-    context_object_name = 'notifications'
-
-    def get_queryset(self):
-        token_id = self.kwargs.get('token_id')
-        token = get_object_or_404(Token, id=token_id)
-        queryset = token.notifications.all().order_by('-created_at')
-        queryset.update(is_read=True)
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['token'] = get_object_or_404(Token, id=self.kwargs.get('token_id'))
-        return context
 
 class MyTokensView(LoginRequiredMixin, ListView):
-    """View for users to see their tokens and pending payment requests."""
+    """List all tokens belonging to the logged-in user."""
+
     model = Token
     template_name = 'tokens/my_tokens.html'
     context_object_name = 'tokens'
 
     def get_queryset(self):
-        tokens = Token.objects.filter(user=self.request.user).order_by('-created_at')
-        today = timezone.now().date()
-        
-        for token in tokens:
-            if token.status in ['waiting', 'near']:
-                # Calculate people ahead for each active token
-                people_ahead = Token.objects.filter(
-                    service=token.service,
-                    status__in=['waiting', 'near'],
-                    date=today,
-                    created_at__lt=token.created_at
-                ).count()
-                
-                # Check if someone is being served for this service
-                serving_exists = Token.objects.filter(
-                    service=token.service,
-                    status='serving',
-                    date=today
-                ).exists()
-                
-                wait_intervals = people_ahead + 1 if serving_exists else people_ahead
-                token.people_ahead = people_ahead
-                token.estimated_wait = wait_intervals * token.service.average_service_time
-            else:
-                token.people_ahead = None
-                token.estimated_wait = None
-        return tokens
+        today = _get_today()
+        tokens = list(
+            Token.objects.filter(user=self.request.user)
+            .select_related('service', 'service__organization')
+            .order_by('-created_at')
+        )
+        return _annotate_queue_position(tokens, today)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['pending_payments'] = Payment.objects.filter(
-            user=self.request.user, 
+            user=self.request.user,
             status='pending',
-            payment_method='Offline'
+            payment_method='Offline',
         ).order_by('-created_at')
         return context
 
-class QueueDisplayView(TemplateView):
-    """Public view for live queue status display."""
-    template_name = 'tokens/display.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        today = timezone.now().date()
-        
-        # If user is logged in, only show counters they have active tokens for
-        if self.request.user.is_authenticated:
-            user_services = Token.objects.filter(
-                user=self.request.user,
-                date=today,
-                status__in=['waiting', 'near', 'serving']
-            ).values_list('service_id', flat=True).distinct()
-            services = Service.objects.filter(id__in=user_services, is_active=True)
-        else:
-            # For anonymous users, show all active services that have any active tokens
-            services = Service.objects.filter(
-                is_active=True,
-                tokens__date=today,
-                tokens__status__in=['waiting', 'near', 'serving']
-            ).distinct()
-            
-        display_data = []
-        
-        for service in services:
-            tokens_today = Token.objects.filter(service=service, created_at__date=today).select_related('user')
-            serving = tokens_today.filter(status='serving').order_by('created_at').first()
-            near = tokens_today.filter(status='near').order_by('created_at').first()
-            waiting_tokens = tokens_today.filter(status='waiting').order_by('created_at')
-            
-            # All tokens currently in the queue (near + waiting)
-            queue_list = list(tokens_today.filter(status__in=['near', 'waiting']).order_by('created_at'))
-            
-            # Calculate wait time for each token in the queue
-            serving_exists = tokens_today.filter(status='serving').exists()
-            for idx, token in enumerate(queue_list):
-                # If someone is being served, idx 0 waits 1 interval.
-                # If NO ONE is being served, idx 0 waits 0 intervals.
-                wait_intervals = idx + 1 if serving_exists else idx
-                token.expected_wait = wait_intervals * service.average_service_time
-
-            # The 'Next' in display usually means the very next one (Near if exists, else first Waiting)
-            next_token = waiting_tokens.first()
-            
-            # Second in line if no near exists, or first in line if near exists
-            if near:
-                waiting_after_next = next_token
-            else:
-                waiting_after_next = waiting_tokens[1] if waiting_tokens.count() > 1 else None
-
-            # Calculate wait for next_token (the one shown in 'Next' slot)
-            expected_wait = 0
-            # If near exists, near is 'Next'. If not, waiting.first() is 'Next'.
-            target_token = near if near else next_token
-            
-            if target_token:
-                ahead_count = tokens_today.filter(
-                    status__in=['near', 'waiting'],
-                    created_at__lt=target_token.created_at
-                ).count()
-                
-                # If someone is being served, add 1 interval.
-                wait_intervals = ahead_count + 1 if serving_exists else ahead_count
-                expected_wait = wait_intervals * service.average_service_time
-            
-            display_data.append({
-                'service': service,
-                'serving': serving,
-                'near': near,
-                'next': next_token,
-                'waiting_after': waiting_after_next,
-                'queue_list': queue_list,
-                'expected_wait': expected_wait
-            })
-        
-        context['display_data'] = display_data
-        return context
 
 class CancelTokenView(LoginRequiredMixin, View):
-    """View to handle token cancellation."""
-    
+    """Allow a user to cancel their own waiting token."""
+
     def post(self, request, token_id):
         token = get_object_or_404(Token, id=token_id, user=request.user)
+
         if token.status == 'waiting':
             token.status = 'cancelled'
             token.save()
             messages.success(request, f"Token #{token.token_number} has been cancelled.")
         else:
-            messages.error(request, "This token cannot be cancelled.")
-            
+            messages.error(request, "Only waiting tokens can be cancelled.")
+
         return redirect('tokens:my_tokens')
 
+
+class NotificationListView(LoginRequiredMixin, ListView):
+    """Show all notifications for a specific token and mark them read."""
+
+    model = Notification
+    template_name = 'tokens/notifications.html'
+    context_object_name = 'notifications'
+
+    def get_queryset(self):
+        token = get_object_or_404(Token, id=self.kwargs['token_id'])
+        qs = token.notifications.all().order_by('-created_at')
+        qs.update(is_read=True)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['token'] = get_object_or_404(Token, id=self.kwargs['token_id'])
+        return context
+
+
+class QueueDisplayView(TemplateView):
+    """
+    Public board showing live queue status per service.
+    Authenticated users only see services they have active tokens for.
+    """
+
+    template_name = 'tokens/display.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = _get_today()
+
+        if self.request.user.is_authenticated:
+            active_service_ids = Token.objects.filter(
+                user=self.request.user,
+                date=today,
+                status__in=('waiting', 'near', 'serving'),
+            ).values_list('service_id', flat=True).distinct()
+
+            services = Service.objects.filter(
+                id__in=active_service_ids, is_active=True
+            )
+        else:
+            services = Service.objects.filter(
+                is_active=True,
+                tokens__date=today,
+                tokens__status__in=('waiting', 'near', 'serving'),
+            ).distinct()
+
+        display_data = []
+
+        for service in services:
+            tokens_today = (
+                Token.objects.filter(service=service, date=today)
+                .select_related('user')
+            )
+
+            serving = tokens_today.filter(status='serving').order_by('created_at').first()
+            near = tokens_today.filter(status='near').order_by('created_at').first()
+            waiting_qs = tokens_today.filter(status='waiting').order_by('created_at')
+
+            # Build the live queue list (near + waiting in order)
+            queue_list = list(
+                tokens_today.filter(status__in=('near', 'waiting')).order_by('created_at')
+            )
+
+            # Attach expected wait to every queued token in one pass
+            serving_exists = serving is not None
+            for idx, t in enumerate(queue_list):
+                wait_intervals = idx + 1 if serving_exists else idx
+                t.expected_wait = wait_intervals * service.average_service_time
+
+            # "Next" slot: near token if one exists, else first waiting
+            next_token = near or waiting_qs.first()
+
+            # "After next" slot
+            if near:
+                after_next = waiting_qs.first()
+            else:
+                after_next = waiting_qs[1] if waiting_qs.count() > 1 else None
+
+            # Expected wait for the next_token shown on the board
+            expected_wait = 0
+            if next_token:
+                # next_token is at position 0 in queue_list if near, else 0 too
+                # Just look it up from the annotated list
+                match = next((t for t in queue_list if t.pk == next_token.pk), None)
+                expected_wait = match.expected_wait if match else 0
+
+            display_data.append({
+                'service': service,
+                'serving': serving,
+                'near': near,
+                'next': next_token,
+                'waiting_after': after_next,
+                'queue_list': queue_list,
+                'expected_wait': expected_wait,
+            })
+
+        context['display_data'] = display_data
+        return context
+
+
+# ─── Staff / Dashboard Views ──────────────────────────────────────────────────
+
+class QueueDashboardView(StaffRequiredMixin, ListView):
+    """Live queue management dashboard for staff."""
+
+    model = Token
+    template_name = 'tokens/dashboard.html'
+    context_object_name = 'tokens'
+    paginate_by = 20
+
+    def _get_filters(self):
+        date_str = self.request.GET.get('date')
+        service_id = self.request.GET.get('service_id')
+        return _parse_date(date_str), service_id
+
+    def get_queryset(self):
+        today, service_id = self._get_filters()
+
+        qs = (
+            Token.objects.filter(service__organization__owner=self.request.user)
+            .select_related('service', 'service__organization', 'user')
+            .filter(date=today)          # use token.date (the canonical date field)
+        )
+
+        if service_id:
+            qs = qs.filter(service_id=service_id)
+
+        tokens = list(qs.order_by('-created_at'))
+        return _annotate_queue_position(tokens, today)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today, service_id = self._get_filters()
+        context['selected_date'] = today
+        context['services'] = Service.objects.filter(
+            organization__owner=self.request.user
+        )
+        context['selected_service_id'] = int(service_id) if service_id else None
+        return context
+
+
+class UpdateTokenStatusView(StaffRequiredMixin, View):
+    """Staff view to change a token's status and notify the user."""
+
+    # Maps status → notification message
+    STATUS_MESSAGES = {
+        'near': "Please be ready! Your token #{num} is near. You are next in line.",
+        'serving': "It's your turn! Your token #{num} is now being served at the counter.",
+    }
+
+    def post(self, request, token_id):
+        token = get_object_or_404(
+            Token, id=token_id, service__organization__owner=request.user
+        )
+        new_status = request.POST.get('status')
+
+        if new_status not in dict(Token.STATUS_CHOICES):
+            messages.error(request, "Invalid status.")
+            return redirect(request.META.get('HTTP_REFERER', 'tokens:queue_dashboard'))
+
+        token.status = new_status
+        token.save()
+
+        # Build notification message
+        template = self.STATUS_MESSAGES.get(
+            new_status,
+            "Your token #{num} status is now: " + new_status.capitalize() + ".",
+        )
+        msg = template.format(num=token.token_number)
+
+        Notification.objects.create(token=token, message=msg)
+        _send_status_email(token, new_status, msg)
+
+        messages.success(
+            request,
+            f"Token #{token.token_number} updated to {new_status}.",
+        )
+        return redirect(request.META.get('HTTP_REFERER', 'tokens:queue_dashboard'))
+
+
+class QueueAnalyticsView(StaffRequiredMixin, TemplateView):
+    """Analytics / reporting view for the queue owner."""
+
+    template_name = 'tokens/analytics.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = _parse_date(self.request.GET.get('date'))
+        context['selected_date'] = today
+
+        base_qs = Token.objects.filter(
+            service__organization__owner=self.request.user,
+            date=today,
+        )
+
+        context['total_tokens'] = base_qs.count()
+        context['completed_tokens'] = base_qs.filter(status='completed').count()
+        context['waiting_tokens'] = base_qs.filter(status='waiting').count()
+
+        # Average wait time across completed tokens
+        completed = base_qs.filter(status='completed')
+        durations = [
+            (t.updated_at - t.created_at).total_seconds() / 60
+            for t in completed
+        ]
+        avg = round(sum(durations) / len(durations)) if durations else 0
+        context['avg_wait'] = f"{avg} min"
+
+        context['service_stats'] = (
+            Service.objects.filter(organization__owner=self.request.user)
+            .annotate(
+                total=Count('tokens', filter=Q(tokens__date=today)),
+                completed=Count(
+                    'tokens',
+                    filter=Q(tokens__status='completed', tokens__date=today),
+                ),
+                waiting=Count(
+                    'tokens',
+                    filter=Q(tokens__status='waiting', tokens__date=today),
+                ),
+            )
+        )
+        return context
+
+
+# ─── Export ───────────────────────────────────────────────────────────────────
+
 class ExportTokenFormDataView(StaffRequiredMixin, View):
-    """View to export token form data as CSV."""
-    
+    """Download all dynamic-form answers for a token as CSV."""
+
     def get(self, request, token_id):
-        token = get_object_or_404(Token, id=token_id, service__organization__owner=request.user)
-        
+        token = get_object_or_404(
+            Token, id=token_id, service__organization__owner=request.user
+        )
+
         response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="token_{token.token_number}_data.csv"'
-        
+        response['Content-Disposition'] = (
+            f'attachment; filename="token_{token.token_number}_data.csv"'
+        )
+
         writer = csv.writer(response)
         writer.writerow(['Field Label', 'Field Value'])
-        
-        form_data = token.form_data.all()
-        for data in form_data:
-            writer.writerow([data.field_label, data.field_value])
-            
+        for entry in token.form_data.all():
+            writer.writerow([entry.field_label, entry.field_value])
+
         return response
