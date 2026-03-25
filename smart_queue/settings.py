@@ -10,11 +10,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.onrender.com',
-]
+# ─── Hosts & CSRF ─────────────────────────────────────────────────────────────
+# Reads from env var so you never need to hardcode the domain.
+# On Render set: ALLOWED_HOSTS=queuenova.onrender.com
+_raw_hosts = os.environ.get('ALLOWED_HOSTS', '*')
+ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(',') if h.strip()]
+
+# On Render set: CSRF_TRUSTED_ORIGINS=https://queuenova.onrender.com
+_raw_csrf = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://*.onrender.com')
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in _raw_csrf.split(',') if o.strip()]
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -77,7 +82,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'smart_queue.wsgi.application'
 
-# ─── Database ────────────────────────────────────────────────────────────────
+# ─── Database ─────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///db.sqlite3',
@@ -85,6 +90,7 @@ DATABASES = {
     )
 }
 
+# ─── Password Validators ──────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -92,6 +98,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# ─── Allauth ──────────────────────────────────────────────────────────────────
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_LOGIN_METHODS = {'email'}
@@ -104,25 +111,32 @@ LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = 'users:login'
 
 # ─── Email ────────────────────────────────────────────────────────────────────
-# FIX 3: Increased timeout from 10s to 30s — cloud servers need more time
-# to establish SMTP connections to Gmail. 10s was too short on Render.
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_BACKEND     = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST        = 'smtp.gmail.com'
+EMAIL_PORT        = 587
+EMAIL_USE_TLS     = True
+EMAIL_USE_SSL     = False          # must be False when USE_TLS is True
+EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = f'Queue Nova <{os.environ.get("EMAIL_HOST_USER", "")}>'
-SERVER_EMAIL = DEFAULT_FROM_EMAIL
-EMAIL_TIMEOUT = 30   # was 10 — too short for Render → SMTP timeout errors
+DEFAULT_FROM_EMAIL  = f'Queue Nova <{os.environ.get("EMAIL_HOST_USER", "")}>'
+SERVER_EMAIL        = DEFAULT_FROM_EMAIL
+EMAIL_TIMEOUT       = 30
 
-# ─── Logging — shows errors in Render Dashboard → Logs ───────────────────────
+# ─── Logging ──────────────────────────────────────────────────────────────────
+# Every app's logger (users, tokens, payments) now surfaces in Render logs.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
         },
     },
     'root': {
@@ -135,6 +149,12 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        # ↓ THIS WAS MISSING — OTP/email errors from users/views.py were invisible
+        'users': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
         'tokens': {
             'handlers': ['console'],
             'level': 'DEBUG',
@@ -145,24 +165,31 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'custom_admin': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
 
+# ─── Localisation ─────────────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Kolkata'
+TIME_ZONE      = 'Asia/Kolkata'
 USE_I18N = True
-USE_TZ = True
+USE_TZ   = True
 
-STATIC_URL = 'static/'
+# ─── Static & Media ───────────────────────────────────────────────────────────
+STATIC_URL  = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-MEDIA_URL = '/media/'
+MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ─── Razorpay ─────────────────────────────────────────────────────────────────
-RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
-RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
+RAZORPAY_KEY_ID         = os.environ.get('RAZORPAY_KEY_ID', '')
+RAZORPAY_KEY_SECRET     = os.environ.get('RAZORPAY_KEY_SECRET', '')
 RAZORPAY_WEBHOOK_SECRET = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
