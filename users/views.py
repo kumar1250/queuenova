@@ -70,10 +70,7 @@ class PasswordResetRequestView(View):
         except Exception as exc:
             # Log the real error on the server; show a safe message to the user.
             logger.error("Failed to send OTP email to %s: %s", user.email, exc)
-            messages.error(
-                request,
-                "Could not send the OTP email. Please try again in a few minutes."
-            )
+            messages.error(request, f"DEBUG EMAIL ERROR: {exc}")
             return render(request, self.template_name)
 
         request.session['reset_email'] = user.email
